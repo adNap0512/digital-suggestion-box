@@ -2,6 +2,8 @@
 
 社内の困りごと・改善アイデア・相談を気軽に投稿でき、対応状況も見える UI のデザインモックです。
 
+▶ [公開デモを見る](https://adnap0512.github.io/digital-suggestion-box/)
+
 ## 概要
 
 - バックエンドなし、ダミーデータで動作
@@ -9,6 +11,14 @@
 - 技術スタック: React + Vite + TypeScript + Vitest
 
 詳細なディレクトリ構成は [docs/directory-structure.md](./docs/directory-structure.md) を参照してください。
+
+## 公開URL
+
+GitHub Pages で公開しています。
+
+- [デジタル目安箱を開く](https://adnap0512.github.io/digital-suggestion-box/)
+- [投稿フォーム](https://adnap0512.github.io/digital-suggestion-box/#/post)
+- [投稿一覧](https://adnap0512.github.io/digital-suggestion-box/#/list)
 
 ## 起動方法
 
@@ -54,19 +64,7 @@ npm run build
 | 投稿フォーム | `/post` | カテゴリ、匿名/記名、タイトル、本文、送信 |
 | 投稿一覧 | `/list` | フィルタ、カード一覧、詳細、共感、管理者操作 |
 
-## 公開（GitHub Pages）
-
-公開 URL:
-
-```txt
-https://adnap0512.github.io/digital-suggestion-box/
-```
-
-| 画面 | URL |
-|------|-----|
-| トップ | https://adnap0512.github.io/digital-suggestion-box/ |
-| 投稿フォーム | https://adnap0512.github.io/digital-suggestion-box/#/post |
-| 投稿一覧 | https://adnap0512.github.io/digital-suggestion-box/#/list |
+## 公開（GitHub Pages）の技術メモ
 
 - Vite の `base` は `/digital-suggestion-box/`
 - ルーティングは GitHub Pages 向けに `HashRouter` を使用
