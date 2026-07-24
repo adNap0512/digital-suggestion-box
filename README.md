@@ -54,6 +54,33 @@ npm run build
 | 投稿フォーム | `/post` | カテゴリ、匿名/記名、タイトル、本文、送信 |
 | 投稿一覧 | `/list` | フィルタ、カード一覧、詳細、共感、管理者操作 |
 
+## 公開（GitHub Pages）
+
+公開 URL:
+
+```txt
+https://adnap0512.github.io/digital-suggestion-box/
+```
+
+| 画面 | URL |
+|------|-----|
+| トップ | https://adnap0512.github.io/digital-suggestion-box/ |
+| 投稿フォーム | https://adnap0512.github.io/digital-suggestion-box/#/post |
+| 投稿一覧 | https://adnap0512.github.io/digital-suggestion-box/#/list |
+
+- Vite の `base` は `/digital-suggestion-box/`
+- ルーティングは GitHub Pages 向けに `HashRouter` を使用
+- `main` への push で GitHub Actions がテスト・ビルド・デプロイを実行
+- 初回はリポジトリの Settings → Pages → Source を **GitHub Actions** に設定
+
+公開前のローカル確認:
+
+```powershell
+npm.cmd test -- --run
+npm.cmd run build
+npm.cmd run preview
+```
+
 ## AI 開発ルール
 
 ### 用語の整理

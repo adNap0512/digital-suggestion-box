@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { HashRouter, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout/Layout';
 import { SuggestionsProvider } from './context/SuggestionsContext';
 import { TopPage } from './pages/TopPage';
@@ -8,7 +8,8 @@ import { ListDetailPage } from './pages/ListDetailPage';
 export function App() {
   return (
     <SuggestionsProvider>
-      <BrowserRouter>
+      {/* GitHub Pages では直接パスアクセスで 404 になりやすいため HashRouter を使う */}
+      <HashRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<TopPage />} />
@@ -16,7 +17,7 @@ export function App() {
             <Route path="/list" element={<ListDetailPage />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </SuggestionsProvider>
   );
 }

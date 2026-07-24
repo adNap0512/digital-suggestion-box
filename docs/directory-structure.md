@@ -17,6 +17,9 @@ digital-suggestion-box/
 ├─ tsconfig.node.json
 ├─ index.html
 ├─ .gitignore
+├─ .github/
+│  └─ workflows/
+│     └─ deploy.yml        # GitHub Pages へのデプロイ
 ├─ docs/
 │  └─ directory-structure.md
 ├─ src/
@@ -94,10 +97,11 @@ coverage/       # カバレッジレポート
 | `README.md` | 起動方法、テスト方法、画面概要、AI 開発ルールの概要 |
 | `DESIGN.md` | デジタル目安箱のデザイン仕様書（AI が参照する見た目・UX の定義） |
 | `package.json` | npm scripts と依存関係 |
-| `vite.config.ts` | Vite のビルド設定、Vitest・カバレッジ（80% 閾値）設定 |
+| `vite.config.ts` | Vite のビルド設定（`base: '/digital-suggestion-box/'`）、Vitest・カバレッジ（80% 閾値）設定 |
 | `tsconfig.json` | TypeScript コンパイラ設定 |
 | `tsconfig.node.json` | Vite 設定ファイル用 TypeScript 設定 |
 | `index.html` | アプリの HTML エントリポイント |
+| `.github/workflows/deploy.yml` | `main` push 時にテスト・ビルド・GitHub Pages デプロイ |
 
 ---
 
@@ -286,6 +290,15 @@ public/                      # 静的アセット（必要に応じて）
 
 - `npm run build` の `dist/` を Cloudflare Pages にデプロイ
 - API が必要な場合は Workers + Supabase の組み合わせ
+
+### 現在の公開方式（GitHub Pages）
+
+モックの静的公開には GitHub Pages を使用する。
+
+- 公開 URL: `https://adnap0512.github.io/digital-suggestion-box/`
+- `vite.config.ts` の `base: '/digital-suggestion-box/'`
+- ルーティングは `HashRouter`（直接パスアクセス時の 404 回避）
+- `.github/workflows/deploy.yml` で `main` push 時に自動デプロイ
 
 ### 拡張時に更新すべきドキュメント
 
