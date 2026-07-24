@@ -17,9 +17,11 @@ digital-suggestion-box/
 ├─ tsconfig.node.json
 ├─ index.html
 ├─ .gitignore
+├─ wrangler.toml               # Cloudflare Workers 設定
 ├─ .github/
 │  └─ workflows/
-│     └─ deploy.yml        # GitHub Pages へのデプロイ
+│     ├─ deploy.yml              # Cloudflare Workers へのデプロイ（本線）
+│     └─ deploy-github-pages.yml # GitHub Pages（任意・手動）
 ├─ docs/
 │  └─ directory-structure.md
 ├─ src/
@@ -97,11 +99,13 @@ coverage/       # カバレッジレポート
 | `README.md` | 起動方法、テスト方法、画面概要、AI 開発ルールの概要 |
 | `DESIGN.md` | デジタル目安箱のデザイン仕様書（AI が参照する見た目・UX の定義） |
 | `package.json` | npm scripts と依存関係 |
-| `vite.config.ts` | Vite のビルド設定（`base: '/digital-suggestion-box/'`）、Vitest・カバレッジ（80% 閾値）設定 |
+| `vite.config.ts` | Vite のビルド設定（Cloudflare は `base: '/'`、GitHub Pages は `GITHUB_PAGES=true` でサブパス）、Vitest・カバレッジ設定 |
+| `wrangler.toml` | Cloudflare Workers の基本設定（`dist` を静的アセット配信） |
 | `tsconfig.json` | TypeScript コンパイラ設定 |
 | `tsconfig.node.json` | Vite 設定ファイル用 TypeScript 設定 |
 | `index.html` | アプリの HTML エントリポイント |
-| `.github/workflows/deploy.yml` | `main` push 時にテスト・ビルド・GitHub Pages デプロイ |
+| `.github/workflows/deploy.yml` | `main` push 時にテスト・ビルド・Cloudflare Workers デプロイ |
+| `.github/workflows/deploy-github-pages.yml` | GitHub Pages への任意デプロイ（手動） |
 
 ---
 
@@ -291,14 +295,20 @@ public/                      # 静的アセット（必要に応じて）
 - `npm run build` の `dist/` を Cloudflare Pages にデプロイ
 - API が必要な場合は Workers + Supabase の組み合わせ
 
-### 現在の公開方式（GitHub Pages）
+### 現在の公開方式
 
-モックの静的公開には GitHub Pages を使用する。
+#### Cloudflare Workers（本線）
+
+- `wrangler.toml` + `.github/workflows/deploy.yml`
+- Vite `base: '/'`
+- Secrets: `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`
+
+#### GitHub Pages（任意）
 
 - 公開 URL: `https://adnap0512.github.io/digital-suggestion-box/`
-- `vite.config.ts` の `base: '/digital-suggestion-box/'`
-- ルーティングは `HashRouter`（直接パスアクセス時の 404 回避）
-- `.github/workflows/deploy.yml` で `main` push 時に自動デプロイ
+- `.github/workflows/deploy-github-pages.yml`（手動実行）
+- ビルド時 `GITHUB_PAGES=true` で `base: /digital-suggestion-box/`
+- ルーティングは `HashRouter`
 
 ### 拡張時に更新すべきドキュメント
 

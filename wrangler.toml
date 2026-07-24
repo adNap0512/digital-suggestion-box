@@ -1,0 +1,14 @@
+# Cloudflare Workers の基本設定
+# Vite でビルドした dist を静的アセットとして配信する
+
+name = "digital-suggestion-box"
+compatibility_date = "2026-07-24"
+
+# workers.dev サブドメインで公開する
+workers_dev = true
+
+# ビルド成果物（npm run build → dist/）を Worker の静的アセットとして配信
+[assets]
+directory = "./dist"
+# SPA 向け: 存在しないパスは index.html にフォールバック
+not_found_handling = "single-page-application"

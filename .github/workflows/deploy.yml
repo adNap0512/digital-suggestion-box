@@ -1,4 +1,13 @@
-name: Deploy to GitHub Pages
+# Cloudflare Workers へのデプロイ
+# 必要な Secrets:
+#   CLOUDFLARE_API_TOKEN
+#   CLOUDFLARE_ACCOUNT_ID
+#
+# 注: メッセージにサンプルリポジトリURLが無かったため、
+# Cloudflare 公式 wrangler-action の構成をベースにしています。
+# サンプルと差分があれば貼ってもらえれば合わせます。
+
+name: Deploy to Cloudflare Workers
 
 on:
   push:
@@ -7,19 +16,14 @@ on:
 
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
-  group: pages
+  group: cloudflare-workers
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-
+    name: Deploy
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,23 +43,10 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
         with:
-          path: ./dist
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # wrangler.toml を参照して dist をデプロイ
+          command: deploy

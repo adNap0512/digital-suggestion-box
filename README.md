@@ -14,11 +14,30 @@
 
 ## 公開URL
 
-GitHub Pages で公開しています。
+### GitHub Pages
 
 - [デジタル目安箱を開く](https://adnap0512.github.io/digital-suggestion-box/)
 - [投稿フォーム](https://adnap0512.github.io/digital-suggestion-box/#/post)
 - [投稿一覧](https://adnap0512.github.io/digital-suggestion-box/#/list)
+
+### Cloudflare Workers
+
+`main` への push で Cloudflare Workers にデプロイします（`wrangler.toml` + `.github/workflows/deploy.yml`）。
+
+公開後の URL 例:
+
+```txt
+https://digital-suggestion-box.<あなたのsubdomain>.workers.dev/
+https://digital-suggestion-box.<あなたのsubdomain>.workers.dev/#/post
+https://digital-suggestion-box.<あなたのsubdomain>.workers.dev/#/list
+```
+
+GitHub リポジトリの Secrets に次を登録してください。
+
+| Secret | 内容 |
+|--------|------|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare API トークン（Workers デプロイ権限） |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウント ID |
 
 ## 起動方法
 
@@ -64,12 +83,26 @@ npm run build
 | 投稿フォーム | `/post` | カテゴリ、匿名/記名、タイトル、本文、送信 |
 | 投稿一覧 | `/list` | フィルタ、カード一覧、詳細、共感、管理者操作 |
 
-## 公開（GitHub Pages）の技術メモ
+## 公開（デプロイ）の技術メモ
 
-- Vite の `base` は `/digital-suggestion-box/`
-- ルーティングは GitHub Pages 向けに `HashRouter` を使用
-- `main` への push で GitHub Actions がテスト・ビルド・デプロイを実行
-- 初回はリポジトリの Settings → Pages → Source を **GitHub Actions** に設定
+### Cloudflare Workers（本線: `deploy.yml`）
+
+- `wrangler.toml` … Worker 名、`dist` を静的アセット配信、SPA フォールバック
+- `.github/workflows/deploy.yml` … テスト → ビルド → `wrangler deploy`
+- Vite の `base` はデフォルト `/`（Workers ルート配信向け）
+- ルーティングは `HashRouter`（直接パスアクセス時の 404 回避）
+
+ローカルからデプロイする場合:
+
+```powershell
+npm.cmd run deploy
+```
+
+### GitHub Pages（任意: `deploy-github-pages.yml`）
+
+- 手動実行（`workflow_dispatch`）または Actions から起動
+- ビルド時に `GITHUB_PAGES=true` で `base: /digital-suggestion-box/` を適用
+- 初回は Settings → Pages → Source を **GitHub Actions** に設定
 
 公開前のローカル確認:
 

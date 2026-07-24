@@ -2,8 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  // GitHub Pages のリポジトリ配下公開用（https://adnap0512.github.io/digital-suggestion-box/）
-  base: '/digital-suggestion-box/',
+  // Cloudflare Workers はルート配信（base: '/'）
+  // GitHub Pages は GITHUB_PAGES=true でサブパス配信
+  base: process.env.GITHUB_PAGES === 'true' ? '/digital-suggestion-box/' : '/',
   plugins: [react()],
   test: {
     globals: true,
