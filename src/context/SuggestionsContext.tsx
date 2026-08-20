@@ -2,11 +2,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
-import { mockSuggestions } from '../data/mockSuggestions';
+import { createPersistentSuggestionRepository } from '../services/persistentSuggestionRepository';
+import type { SuggestionRepository } from '../services/suggestionRepository';
 import type { DraftForm, Status, Suggestion } from '../utils/types';
 import {
   addResponse,
@@ -25,25 +28,44 @@ interface SuggestionsContextValue {
 
 const SuggestionsContext = createContext<SuggestionsContextValue | null>(null);
 
-export function SuggestionsProvider({ children }: { children: ReactNode }) {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>(mockSuggestions);
+interface SuggestionsProviderProps {
+  children: ReactNode;
+  /** 省略時は Goal B の Persistent（Web Storage）。特定 DB 製品には依存しない */
+  repository?: SuggestionRepository;
+}
 
-  const addSuggestion = useCallback((draft: DraftForm) => {
-    const newItem: Suggestion = {
-      id: String(Date.now()),
-      title: draft.title,
-      body: draft.body,
-      category: draft.category,
-      isAnonymous: draft.isAnonymous,
-      authorName: draft.isAnonymous ? undefined : draft.authorName,
-      status: '未確認',
-      empathyCount: 0,
-      hasResponse: false,
-      createdAt: new Date().toISOString(),
-      isMine: true,
-    };
-    setSuggestions((prev) => [newItem, ...prev]);
-  }, []);
+export function SuggestionsProvider({
+  children,
+  repository,
+}: SuggestionsProviderProps) {
+  const fallbackRepoRef = useRef<SuggestionRepository | null>(null);
+  if (fallbackRepoRef.current === null) {
+    fallbackRepoRef.current = createPersistentSuggestionRepository();
+  }
+  const repo = repository ?? fallbackRepoRef.current;
+
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  // in-flight の list が、後続の create 結果を古いスナップショットで上書きしないため
+  const loadGenerationRef = useRef(0);
+
+  useEffect(() => {
+    const generation = ++loadGenerationRef.current;
+    void repo.list().then((items) => {
+      if (generation !== loadGenerationRef.current) return;
+      setSuggestions(items);
+    });
+  }, [repo]);
+
+  const addSuggestion = useCallback(
+    (draft: DraftForm) => {
+      const generation = ++loadGenerationRef.current;
+      void repo.create(draft).then((created) => {
+        if (generation !== loadGenerationRef.current) return;
+        setSuggestions((prev) => [created, ...prev]);
+      });
+    },
+    [repo],
+  );
 
   const empathize = useCallback((id: string) => {
     setSuggestions((prev) =>

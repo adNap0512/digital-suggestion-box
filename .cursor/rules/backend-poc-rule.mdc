@@ -1,0 +1,42 @@
+---
+description: backend PoC / loop-engineering 実験中の許可範囲と禁止事項
+alwaysApply: true
+---
+
+# Backend PoC Rule
+
+通常はバックエンド禁止（`project-rule.mdc`）。本ルールはそれを常時解除しない。
+
+## 許可のゲート
+
+次をすべて満たすときだけ、バックエンド関連の実装を許可する。
+
+1. `GOAL.md` に backend PoC / loop-engineering 実験が明示されている
+2. 作業内容が `GOAL.md` の **現在の Goal** の範囲内である
+3. `progress.md` の Current Goal と矛盾しない
+
+ゲートを満たさない、または GOAL に実験明示が無い場合は、従来どおりバックエンドも DB も追加しない。
+
+## 依存方向
+
+React UI → Context → Repository/Service →（将来）API → DB
+
+- pages / components は保存実装・DB クライアントを import しない
+- Context は特定 DB 製品に依存しない
+- 保存方式の追加は Repository 実装の差し替えで行う
+
+## Goal ごとの制限
+
+- **Goal A**: Memory 実装と list / create 境界のみ。永続 DB・HTTP API・特定 DB 製品は禁止
+- **Goal B**: Goal A 完了後、かつ人間が開始すると `progress.md` に書いたあとだけ。製品名を Goal に固定しない
+
+## ループ中の約束
+
+- 1 起動 = 1 イテレーション。無制限に周を続けない
+- 次の作業は 1 つだけ
+- テストを先に書く
+- 毎周 `npm test -- --run` と `npm run build` を実行し、失敗したまま終えない
+- 終了前に `progress.md` を更新する
+- 対象外（認証・添付・管理者完成・共感/ステータス/回答 API・大幅 UI 変更）は実装しない
+
+詳細手順は `.claude/skills/loop-engineering/SKILL.md`。STOP 条件も Skill に従う。

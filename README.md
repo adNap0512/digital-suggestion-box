@@ -14,23 +14,49 @@
 
 ## 公開URL
 
-### GitHub Pages
+会社の人へ送るのは **公開画面のURL** です。`dash.cloudflare.com` から始まる管理画面URLは、Cloudflare にログインできる人しか開けないため送りません。
+
+### 報告用（この3つをセットで）
+
+```md
+■ Cloudflare公開画面
+https://digital-suggestion-box.<あなたのサブドメイン>.workers.dev/
+
+■ GitHub Pages公開画面
+https://adnap0512.github.io/digital-suggestion-box/
+
+■ ソースコード・構成資料
+https://github.com/adNap0512/digital-suggestion-box
+```
+
+### GitHub Pages（確定）
 
 - [デジタル目安箱を開く](https://adnap0512.github.io/digital-suggestion-box/)
 - [投稿フォーム](https://adnap0512.github.io/digital-suggestion-box/#/post)
 - [投稿一覧](https://adnap0512.github.io/digital-suggestion-box/#/list)
 
-### Cloudflare Workers
+### Cloudflare Workers（公開URLの確認場所）
 
 `main` への push で Cloudflare Workers にデプロイします（`wrangler.toml` + `.github/workflows/deploy.yml`）。
 
-公開後の URL 例:
+公開URLの確認:
 
 ```txt
-https://digital-suggestion-box.<あなたのsubdomain>.workers.dev/
-https://digital-suggestion-box.<あなたのsubdomain>.workers.dev/#/post
-https://digital-suggestion-box.<あなたのsubdomain>.workers.dev/#/list
+Cloudflare
+→ Compute
+→ Workers & Pages
+→ digital-suggestion-box
+→ Settings
+→ Domains & Routes
 ```
+
+ここに表示される `workers.dev` のURLを使います（例: `https://digital-suggestion-box.<サブドメイン>.workers.dev/`）。
+
+| 画面 | URL の形 |
+|------|----------|
+| トップ | `https://digital-suggestion-box.<サブドメイン>.workers.dev/` |
+| 投稿フォーム | `https://digital-suggestion-box.<サブドメイン>.workers.dev/#/post` |
+| 投稿一覧 | `https://digital-suggestion-box.<サブドメイン>.workers.dev/#/list` |
 
 GitHub リポジトリの Secrets に次を登録してください。
 
@@ -38,6 +64,8 @@ GitHub リポジトリの Secrets に次を登録してください。
 |--------|------|
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API トークン（Workers デプロイ権限） |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウント ID |
+
+Worker 詳細画面のスクリーンショットがあれば、送るべき公開URLの場所を指示できます。
 
 ## 起動方法
 
