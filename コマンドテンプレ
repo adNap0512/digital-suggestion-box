@@ -1,0 +1,18 @@
+# ① 変更確認
+git status
+
+# ② テスト
+npm.cmd test -- --run
+npm.cmd run build
+
+# ③ Gitへ登録
+git add .
+
+# ④ 登録内容確認
+git status
+
+# ⑤ コミット
+git commit -m "feat: 変更内容を書く"
+
+# ⑥ GitHubへ反映
+git push origin main
