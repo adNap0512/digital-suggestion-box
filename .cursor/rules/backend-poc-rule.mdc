@@ -29,6 +29,7 @@ React UI → Context → Repository/Service →（将来）API → DB
 
 - **Goal A**: Memory 実装と list / create 境界のみ。永続 DB・HTTP API・特定 DB 製品は禁止
 - **Goal B**: Goal A 完了後、かつ人間が開始すると `progress.md` に書いたあとだけ。製品名を Goal に固定しない
+- **Goal C**: Goal B 完了後、かつ人間が Goal C を `progress.md` の Current Goal にしたあとだけ。許可は Supabase 用 Repository、接続設定、最小テーブル連携、必要なテスト。Free 範囲。UI / pages / Context から DB 直結は禁止。Secret はコミット禁止。認証・添付・共感/ステータス/回答の DB 化・Realtime・共通 PF API は禁止
 
 ## ループ中の約束
 
@@ -38,5 +39,6 @@ React UI → Context → Repository/Service →（将来）API → DB
 - 毎周 `npm test -- --run` と `npm run build` を実行し、失敗したまま終えない
 - 終了前に `progress.md` を更新する
 - 対象外（認証・添付・管理者完成・共感/ステータス/回答 API・大幅 UI 変更）は実装しない
+- Secret / API Key をソースに埋め込まない。アカウント作成や課金操作は人間へ返す
 
 詳細手順は `.claude/skills/loop-engineering/SKILL.md`。STOP 条件も Skill に従う。

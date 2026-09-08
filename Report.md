@@ -14,7 +14,7 @@
 | 1:00〜5:00 | PoC画面デモ | Cloudflare Workers（またはローカル） |
 | 5:00〜8:00 | 最初に試した Rules / Skills / TDD | リポジトリのフォルダ |
 | 8:00〜12:30 | **ループエンジニアリング（中心）** Iteration 1〜5 と学び | GOAL.md / progress.md |
-| 12:30〜14:00 | 永続化PoCと共通PFへの今後 | 構成図。完成したバックエンドではない |
+| 12:30〜14:00 | 永続化PoCと共通PFへの今後（時間があれば Goal C まで） | 構成図。完成したバックエンドではない |
 | 14:00〜15:00 | まとめ | 公開URL |
 
 今回いちばん伝えたいこと:
@@ -181,7 +181,7 @@ AI は1起動につき1周だけ、次を自分で判断する。
 > **ここでファイルを短く見せる:** `GOAL.md` → `progress.md` → `.cursor/rules/backend-poc-rule.mdc`
 
 **GOAL.md**  
-実験目的、Goal A / B、受け入れ条件、対象外。ループ中に AI が Goal を勝手に変えない。変える必要があれば STOP。
+実験目的、Goal A / B / C、受け入れ条件、対象外。ループ中に AI が Goal を勝手に変えない。変える必要があれば STOP。
 
 **progress.md**  
 状態をチャットに残さない。Current Goal、Iteration、Completed、Current State、Next Task、Verification、Findings、Decisions、Problems、Stop Reason。
@@ -305,6 +305,152 @@ Context のデフォルトを Persistent 実装へ差し替える。
 
 ---
 
+### Goal C の目的（Iteration 6 以降）
+
+Goal B のあと、人間が Goal C を開始した。目的は Supabase を「使えること」だけではない。
+
+> 既存の `SuggestionRepository`（`list` / `create`）を維持したまま、外部 DB を Repository 差し替えで接続できるか。
+
+UI / pages / `SuggestionsContext` は Supabase 固有 API（`createClient` / `supabase.from`）へ直接依存させない。将来は共通 PF API 用 Repository へ差し替える前提。
+
+Goal C は **未達**。実 DB の list / create はまだ確認していない。migration もリモート未適用。
+
+---
+
+### Iteration 6 … 実装せず STOP
+
+Goal C 開始。外部 DB として Supabase Free を使う方針は確認した。ただし次は人間判断が必要だったため、コードを足さず止まった。
+
+- 外部サービス作成・アカウント操作
+- URL / Key
+- テーブル作成の承認
+- RLS / anonymous access
+
+**学び:** AI を自走させることは「何でも勝手に進めること」ではない。外部サービス・認証・セキュリティでは、人間へ制御を返すこともループの一部。
+
+---
+
+### Iteration 7 … 公式手段と最小スキーマ
+
+Supabase を AI 側から操作する公式手段を調査した。画面操作の自動化はしない。
+
+- `npx supabase` が利用可能（この環境では未ログイン）
+- 公式 MCP はこの Cursor セッションでは未接続
+- CLI を採用候補とした
+- 実 Project / Key / 通信はまだ行わない
+
+追加（秘密値なし）:
+
+- `supabase/migrations/20260908145100_create_suggestions.sql`
+- `.env.example`（`VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` の空欄のみ）
+
+`suggestions` の最小列: `id`, `title`, `body`, `category`, `is_anonymous`, `author_name`, `created_at`。
+
+Goal C では DB に置かない: `isMine`（UI 判定）、`empathyCount`、`status`、`hasResponse`、`response`。list では Repository が既定値を埋める。
+
+RLS は ON。anon に SELECT / INSERT のみ。UPDATE / DELETE の Policy / GRANT は付けない。authenticated には付与しない。
+
+---
+
+### Iteration 8 … 実 DB なしで Repository を先に作る
+
+実 Project や実 Key に依存せず、`SupabaseSuggestionRepository` をテスト先行で追加。Context / UI は未接続。
+
+```txt
+SuggestionRepository
+  ↓
+SupabaseSuggestionRepository
+  ↓
+SuggestionsRemoteClient（テストは Fake）
+```
+
+確認したこと: DB 行 → `Suggestion`、`DraftForm` → INSERT（`id` / `created_at` は送らない）、匿名 / 記名、list / create、クライアントエラーを成功扱いにしない。
+
+```txt
+57件 PASS（14ファイル）　／　build PASS
+```
+
+**学び:** 外部 DB がまだ無くても、境界と Fake クライアントがあればアプリ側の実装とテストを先に進められる。
+
+---
+
+### Iteration 9 … 公式 SDK をアダプタに閉じる
+
+`@supabase/supabase-js` を追加。SDK 固有処理は `SupabaseSuggestionsRemoteClient` に閉じた。Repository は SDK 型に強く依存しない。
+
+```txt
+SuggestionRepository
+  ↓
+SupabaseSuggestionRepository
+  ↓
+SuggestionsRemoteClient
+  ↓
+SupabaseSuggestionsRemoteClient
+  ↓
+注入された SDK Client
+```
+
+実通信なし。SELECT（Goal C 列のみ、`created_at DESC`）、INSERT、error、env 未設定時 factory が null、をテスト。
+
+```txt
+62件 PASS（15ファイル）　／　build PASS
+```
+
+通常起動では env が無くても落ちない（この時点では Context 未配線）。
+
+---
+
+### Iteration 10 … 実行時の差し替え
+
+`createDefaultSuggestionRepository()` を Context の外に置いた。
+
+- URL と publishable key が両方ある → `SupabaseSuggestionRepository`
+- 無い / 片方だけ → `PersistentSuggestionRepository`（起動を落とさない）
+- `SuggestionsProvider` の `repository` prop は最優先
+
+Context には `createClient` / `supabase.from` / `@supabase/supabase-js` を置いていない。
+
+```txt
+65件 PASS（16ファイル）　／　build PASS
+```
+
+factory 経由で SDK がアプリバンドルに入る。env 未設定でも Web Storage で起動する。
+
+**学び:** DB 製品を Context に埋め込まず、Repository の生成場所だけ差し替えると、既存 UI を変えずに保存方式を切り替えられる。
+
+---
+
+### Iteration 11 … 実疎通は環境未準備で STOP
+
+実 DB の list / create を確認する周。次が揃っていなかったため、ダミー Key では進めず実通信しなかった。
+
+- Free Project 未作成
+- migration 未適用
+- `.env.local` 未設定
+- Project URL / publishable key 未取得
+
+test / build は 65 件のまま成功。**Goal C は未達** と判定して停止。
+
+---
+
+### ループ外: Supabase Free 環境の準備（人間承認）
+
+Iteration 11 のあと、ループ外で CLI 接続を進めた。`/loop-engineering` の自動継続ではない。Project 作成は人間が条件を承認したあとだけ実行した。
+
+PowerShell の ExecutionPolicy の影響で、人間側ターミナルでは `npx supabase ...` が通らず、`npx.cmd supabase ...` を使った。エージェントシェルは非 TTY のため `supabase login` の自動ブラウザ認証ができず、TTY でのログインが必要だった。
+
+実施済み（値は本資料に書かない）:
+
+- CLI ログイン
+- Organization `digital-suggestion-box`（Free、$0/month）を新規作成
+- Project `digital-suggestion-box-goal-c`（Region `ap-northeast-1` / Tokyo、状態 `ACTIVE_HEALTHY`）
+- 有料 Compute / HA / Add-on / Pro Upgrade なし。既存 Project は変更していない
+- DB password はローカルのみ。Git / チャット / 本資料に保存しない
+
+**未実施:** リモートへの migration 適用、`.env.local`、実 DB の list / create / 再 list。
+
+---
+
 ## 学び（ここを厚く話す）
 
 ### 1. 細かい実装プロンプトがなくても進んだ
@@ -325,9 +471,12 @@ Context のデフォルトを Persistent 実装へ差し替える。
 | Iteration 1 | 43 |
 | Iteration 2 | 45 |
 | Iteration 4 | 49 |
-| Iteration 5（現在） | **50（13ファイル、すべて成功）** |
+| Iteration 5（Goal B） | 50（13ファイル） |
+| Iteration 8 | 57（14ファイル） |
+| Iteration 9 | 62（15ファイル） |
+| Iteration 10〜11（現在） | **65（16ファイル、すべて成功）** |
 
-Iteration 3 はコードを足していない（比較と STOP のみ）。
+Iteration 3 / 6 / 11 は実コードを足さず STOP（または環境確認のみ）。Iteration 7 は migration 案と `.env.example`。
 
 ### 4. 状態をチャットの外に置く
 
@@ -349,6 +498,15 @@ Iteration 3 は失敗ではなく、人間へ制御を戻した事例。
 ```
 
 **コードの書き方を指示する人から、AI が正しく判断できる環境を設計する人へ。**
+
+### Goal C で追加で分かったこと
+
+1. 完成手順を細かく指示しなくても、GOAL / Rules / Skill / `progress.md` から次の最小作業を判断させられた  
+2. 外部サービス未準備でも、Fake / Client 境界でアプリ側を先に検証できた  
+3. Secret・RLS・課金・アカウント操作では STOP し、人間へ返せた  
+4. Goal A の境界があったので、Web Storage から Supabase へ進んでも UI / Context への影響を最小化できた  
+5. 「AI に何を書かせるか」だけでなく、「どこまで任せ、どこで人間が承認するか」という環境設計が本体だった  
+6. ループは単純な自動繰り返しではなく、把握 → 判断 → 実装 → test/build → 記録 → 必要なら STOP、という判断ループとして機能した  
 
 ---
 
@@ -372,7 +530,39 @@ Web Storage（ブラウザ。PoC の保存口）
 
 `MemorySuggestionRepository` は残っている（契約テスト用）。画面のデフォルトではない。
 
-これは **本番バックエンドではない。** 共通 PF にも未接続。DB も未実装。
+これは **本番バックエンドではない。** 共通 PF にも未接続。Goal B 時点では DB も未実装だった。
+
+### Goal C 以降の構成（実疎通は未完了）
+
+実行時は env が揃ったときだけ Supabase 側を選ぶ。未設定（現状のローカル既定）は Web Storage のまま。
+
+```txt
+React UI（pages / components）
+  ↓
+SuggestionsContext（SDK 非依存。repository prop 優先）
+  ↓
+createDefaultSuggestionRepository()
+  ├─ Supabase設定なし / 不完全 → Persistent → Web Storage
+  └─ URL + publishable key あり
+       ↓
+     SupabaseSuggestionRepository
+       ↓
+     SuggestionsRemoteClient
+       ↓
+     SupabaseSuggestionsRemoteClient
+       ↓
+     @supabase/supabase-js
+       ↓
+     Supabase Free（Project 作成済み。migration 未適用）
+```
+
+Goal C で完了しているもの: Repository 境界、Web Storage 永続化、Supabase Repository、RemoteClient、公式 SDK アダプタ、env による切り替え、migration / RLS 案、Free Organization、Free Project。
+
+まだ完了していないもの: リモートへの migration、`.env.local`、実 DB の list / create / 再 list。**Goal C は未達。**
+
+次の予定: Goal C 専用 Project へ migration を適用し、Repository 経由で list → create → 再 list を確認したうえで、Goal C の達成判定を行う。
+
+接続情報（Project URL / publishable key / secret / service_role / DB password）は本資料に書かない。フロントでは publishable key のみを想定し、secret / service_role は使わない。
 
 将来の差し替え想定:
 
@@ -407,7 +597,8 @@ Web Storage にした理由は、本番として最適だからではない。**
 2. DESIGN.md / Rules / Skills / テストで、AI に同じ品質で書いてもらう土台を置いた  
 3. ループエンジニアリングでは、人間が Goal と STOP を設計し、AI が1周ずつ次を判断した  
 4. Goal A で境界、Goal B で差し替え永続化 PoC。技術選定では人間へ戻した  
-5. いまあるのは Web Storage の PoC。共通 PF 接続や本番 DB ではない  
+5. Goal C では同じ境界のまま Supabase 差し替えを検証中。Project 作成まで。実 DB 疎通と Goal C 達成はこれから  
+6. いま公開前提として話せるのは Web Storage の PoC。共通 PF 接続や本番 DB ではない  
 
 公開（構成はある。最新コードは push 後）:
 
@@ -431,8 +622,9 @@ https://adnap0512.github.io/digital-suggestion-box/#/
 - [ ] Rules / Skills をフォルダで10秒見せる
 - [ ] GOAL.md と progress.md を見せ、1起動=1周を言う
 - [ ] Iteration 3 の STOP を「学び」として話す
-- [ ] 「バックエンド完成」「DB実装」「共通PF接続済」と言わない
+- [ ] 「バックエンド完成」「DB実装」「共通PF接続済」「Goal C達成」と言わない
 - [ ] 共感・ステータス・回答はメモリ、と一言入れる
+- [ ] Goal C に触れるなら、Project 作成済み・migration 未適用・実疎通未確認、と正確に言う
 - [ ] まとめは「環境を設計する人間」に戻す
 
 ---
@@ -443,19 +635,19 @@ https://adnap0512.github.io/digital-suggestion-box/#/
 
 ### 確認した主要ファイル
 
-`README.md`、`Report.md`（旧）、`DESIGN.md`、`GOAL.md`、`progress.md`、`docs/directory-structure.md`、`src/App.tsx`、`src/context/SuggestionsContext.tsx`、`src/data/`、`src/services/`（3ファイル）、`src/utils/`、`src/tests/`、`.cursor/rules/`（project / design / test / backend-poc）、`.cursor/hooks/`、`.claude/skills/`（planning / tdd / review / design-mock / loop-engineering）、`.claude/commands/`、`.github/workflows/`、`package.json`、`vite.config.ts`、`wrangler.toml`
+`README.md`、`Report.md`（旧）、`DESIGN.md`、`GOAL.md`、`progress.md`、`docs/directory-structure.md`、`src/App.tsx`、`src/context/SuggestionsContext.tsx`、`src/data/`、`src/services/`、`src/utils/`、`src/tests/`、`.cursor/rules/`（project / design / test / backend-poc）、`.cursor/hooks/`、`.claude/skills/`（planning / tdd / review / design-mock / loop-engineering）、`.claude/commands/`、`.github/workflows/`、`package.json`、`vite.config.ts`、`wrangler.toml`、`supabase/migrations/`、`.env.example`
 
-追加分: `suggestionRepository.ts`、`memorySuggestionRepository.ts`、`persistentSuggestionRepository.ts`（ここに `KeyValueStorage` と `createPersistentSuggestionRepository`）、`src/tests/services/*`、`src/tests/context/SuggestionsContext.test.tsx`
+追加分: `suggestionRepository.ts`、`memorySuggestionRepository.ts`、`persistentSuggestionRepository.ts`（ここに `KeyValueStorage` と `createPersistentSuggestionRepository`）、`supabaseSuggestionRepository.ts`、`supabaseSuggestionsRemoteClient.ts`、`createDefaultSuggestionRepository.ts`、`src/tests/services/*`、`src/tests/context/SuggestionsContext.test.tsx`
 
 ### 現在のテスト
 
-`npm test -- --run` … **13ファイル / 50件、すべて成功**（2026-08-20 実行）。カバレッジ閾値は `vite.config.ts` で 80%。
+`npm test -- --run` … **16ファイル / 65件、すべて成功**（Goal C Iteration 11 時点）。カバレッジ閾値は `vite.config.ts` で 80%。Goal B 完了時は 13ファイル / 50件だった。
 
 ### Goal
 
 - Goal A: 達成（Iteration 2）
 - Goal B: 達成（Iteration 5）
-- 次の Goal: なし（人間待ち）
+- Goal C: **未達**（Iteration 11 で実疎通 STOP。その後 Free Project 作成まで。migration 未適用、実 list/create 未確認）
 
 ### 永続化されるデータ
 
@@ -473,6 +665,8 @@ https://adnap0512.github.io/digital-suggestion-box/#/
 - ループ／永続化の変更は **未コミット**。`main` の最新コミットは Workers CI 追加まで。公開 URL が Goal B 済みとは言えない
 - `wrangler.toml` は静的 `dist` 配信のまま。KV / D1 / API ルートは無い
 - GitHub Pages は `workflow_dispatch`（手動）。Workers が `main` push の本線
-- pages は `src/services` を import していない。Context は工場関数経由で Persistent を使う
+- pages は `src/services` を import していない。Context は `createDefaultSuggestionRepository` 経由（env なしなら Persistent）。SDK は Context に無い
+- Goal C の Supabase Project は作成済み。migration はリモート未適用。`.env.local` 未設定
+- 接続情報（URL / Key / Secret / DB password）は本資料・Git に書かない
 - 下書きの `localStorage` は投稿永続化とは別（`suggestion-box-draft`）
 - 「Service 層」というディレクトリ名は無く、契約名は `SuggestionRepository`

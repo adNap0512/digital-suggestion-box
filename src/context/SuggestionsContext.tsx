@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { createPersistentSuggestionRepository } from '../services/persistentSuggestionRepository';
+import { createDefaultSuggestionRepository } from '../services/createDefaultSuggestionRepository';
 import type { SuggestionRepository } from '../services/suggestionRepository';
 import type { DraftForm, Status, Suggestion } from '../utils/types';
 import {
@@ -30,7 +30,7 @@ const SuggestionsContext = createContext<SuggestionsContextValue | null>(null);
 
 interface SuggestionsProviderProps {
   children: ReactNode;
-  /** 省略時は Goal B の Persistent（Web Storage）。特定 DB 製品には依存しない */
+  /** 省略時は default factory（env があれば Supabase、なければ Persistent） */
   repository?: SuggestionRepository;
 }
 
@@ -40,7 +40,7 @@ export function SuggestionsProvider({
 }: SuggestionsProviderProps) {
   const fallbackRepoRef = useRef<SuggestionRepository | null>(null);
   if (fallbackRepoRef.current === null) {
-    fallbackRepoRef.current = createPersistentSuggestionRepository();
+    fallbackRepoRef.current = createDefaultSuggestionRepository();
   }
   const repo = repository ?? fallbackRepoRef.current;
 

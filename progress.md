@@ -6,15 +6,15 @@
 
 ## Current Goal
 
-Goal B（達成）
+Goal C（未達）
 
-既存の UI / Context / Repository 契約を維持したまま、Web Storage を保存口にした実装差し替えで投稿を永続化する。本番バックエンドではない。将来は共通 PF API へ差し替える。
+既存の `SuggestionRepository`（`list` / `create`）を維持したまま、Supabase Free を外部 DB として Repository 差し替えで接続できるかを検証する。コード側の Repository / アダプタ / factory は揃っている。リモート環境未準備のため実 list / create は未確認。
 
 ---
 
 ## Iteration
 
-5
+11
 
 ---
 
@@ -22,40 +22,46 @@ Goal B（達成）
 
 - Iteration 0: 調査とループ環境構築
 - Iteration 1–2: Goal A
-- Iteration 3: Goal B 開始。方式 A を人間が承認
-- Iteration 4: Persistent Repository と保存口契約テスト
-- Iteration 5: Context のデフォルトを Persistent に差し替え
-  - `createPersistentSuggestionRepository()`（保存口のデフォルトは Web Storage）
-  - 再マウント後も create が残る Context テスト
-  - テスト間で localStorage をクリア
-- Goal B 受け入れ条件を満たした
+- Iteration 3–5: Goal B（Web Storage PoC）
+- Goal C の定義
+- Iteration 6–7: リモート手順整理、migration 案、`.env.example`
+- Iteration 8–10: Repository、SDK アダプタ、default factory、Context は SDK 非依存
+- Iteration 11: 実環境の準備状況を確認。未準備のため **実通信せず STOP**
 
 ---
 
 ## Current State
 
 ```txt
-React UI（pages / components。保存実装を import しない）
+React UI
   ↓
-SuggestionsContext（省略時は Persistent。repository 注入可）
-  ↓ list / create
-SuggestionRepository
-  ↓ createPersistentSuggestionRepository()
-PersistentSuggestionRepository
-  ↓ KeyValueStorage
-Web Storage（PoC。共通PF API ではない）
+SuggestionsContext（repository prop 優先。省略時 default factory。SDK 非依存）
+  ↓
+createDefaultSuggestionRepository
+  ├─ URL + publishable key あり → SupabaseSuggestionRepository（実行時は未使用）
+  └─ 未設定 → PersistentSuggestionRepository → Web Storage（現在の実行経路）
 ```
 
-- 投稿の list / create は永続化アダプタ経由
-- 同じブラウザならリロード後も新規投稿が残る（手動デモ）
-- 共感 / ステータス / 回答は従来どおり Context メモリ（対象外）
-- Memory 実装は残している（契約テスト用）。画面のデフォルトではない
+準備チェック（値は記録しない）:
+
+| 項目 | 状態 |
+|------|------|
+| Supabase Free プロジェクト | 未確認（CLI 未ログイン、MCP なし） |
+| `suggestions` テーブル | 未確認 |
+| migration リモート適用 | 未準備（ローカル案のみ） |
+| RLS ON / anon SELECT+INSERT のみ | 未確認 |
+| `.env.local` | 未準備 |
+| `VITE_SUPABASE_URL` | 未準備 |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | 未準備 |
+| secret / service_role をフロントで未使用 | コード上は維持 |
 
 ---
 
 ## Next Task
 
-なし（Goal B 達成）。追加の Goal は人間が決める。
+人間が Free プロジェクト・テーブル・RLS・`.env.local`（URL / publishable key のみ）を用意したあと、Iteration 12 の候補:
+
+**Repository 経路で実 DB の list / create / 再 list を確認する。ダミー Key は使わない。**
 
 ---
 
@@ -63,47 +69,45 @@ Web Storage（PoC。共通PF API ではない）
 
 | 項目 | 結果 |
 |------|------|
-| `npm test -- --run` | 成功（13 ファイル / 50 件） |
+| 実 DB list / create | 未実施（環境未準備のため STOP） |
+| `npm test -- --run` | 成功（16 ファイル / 65 件） |
 | `npm run build` | 成功 |
-| Goal A | 達成 |
-| Goal B | 達成 |
-
-Goal B 内訳:
-
-- 永続化可能な Repository へ差し替え: はい（Context デフォルト）
-- 再生成後 list: 契約テスト + 再マウント Context テスト
-- DB 製品名を Goal に固定していない
-- React から DB 直結していない（契約 + 保存口）
-- test / build: 成功
+| Goal A / B | 達成 |
+| Goal C | 未達 |
 
 ---
 
 ## Findings
 
-- Context は `localStorage` を直接触らず、工場関数経由。将来 HTTP 工場に差し替えやすい
-- pages は保存実装を import していない
-- テストは `localStorage.clear()` で隔離する。デフォルトが Web Storage になったため
-- 下書きの `localStorage`（PostFormPage）は従来どおり別キー。今回は未変更
+- `.env.local` が無い。プロセス環境にも URL / Key が無い
+- CLI `projects list` は未ログイン
+- このセッションに Supabase MCP は無い
+- ダミー URL / Key では進めないと判断して実通信していない
 
 ---
 
 ## Decisions
 
-- Goal B の保存は方式 A（保存口 + Web Storage）の PoC
-- 本番バックエンドにはしない。将来は同じ契約の HTTP / 共通 PF API へ差し替える
-- Iteration 5 で Context デフォルトを差し替え、Goal B を達成とした
-- 次の Goal は自動では始めない
+- 1つでも未準備なら実通信しない
+- secret / service_role は使わない
+- テスト投稿の DELETE 権限は追加しない（今回は投稿自体していない）
 
 ---
 
 ## Problems
 
-なし
+人間待ち（順）:
+
+1. Free Organization 上に Goal C 専用プロジェクトを作成する
+2. ローカル migration を適用する（`suggestions`、RLS ON、anon の SELECT/INSERT のみ）
+3. Project URL と publishable key を `.env.local` に入れる（Git に上げない。値はチャットに貼らない）
+4. 準備済み / 未準備だけを Cursor に伝える
+5. `/loop-engineering` で Iteration 12 を起動する
 
 ---
 
 ## Stop Reason
 
-Goal B 達成。test / build は成功した。
+外部環境未準備。プロジェクト存在、テーブル、RLS、`.env.local`、URL / publishable key を確認できず、実通信を行っていない。
 
-次の実験や機能追加は、人間が指示してから始める。
+Goal C は未達。次は人間が準備したあと `/loop-engineering` で Iteration 12 を起動する。

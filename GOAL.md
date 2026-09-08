@@ -38,9 +38,9 @@ SuggestionsContext（画面用の状態。保存方式は知らない）
   ↓
 SuggestionRepository / SuggestionService（契約）
   ↓
-Backend API（将来の共通PF。Goal A は Memory、Goal B は永続化アダプタで代替）
+保存アダプタ（Goal A: Memory / Goal B: Web Storage / Goal C: Supabase Repository）
   ↓
-DB / 認証（共通PF側。React から直接触らない）
+将来は HTTP / 共通PF API → DB / 認証（React から直接触らない）
 ```
 
 - pages / components は保存実装を import しない
@@ -113,7 +113,89 @@ DB / 認証（共通PF側。React から直接触らない）
 
 ---
 
-## 対象外（Goal A / B 共通）
+## Goal C（現在のゴール）
+
+Supabase Free を外部 DB として使い、既存の `SuggestionRepository`（`list` / `create`）を維持したまま、投稿の一覧取得と新規作成を Supabase へ保存・取得できることを検証する。
+
+確認したいのは「Supabase を使えること」だけではない。  
+**外部 DB を入れても、UI / Context を製品へ直結せず、Repository 差し替えで接続できるか** を見る。
+
+Goal C は共通 PF 構成ではない。将来は HTTP / 共通 PF API 用 Repository へ差し替える。
+
+```txt
+React UI
+  ↓
+SuggestionsContext（Supabase を import しない）
+  ↓
+SuggestionRepository（既存契約）
+  ↓
+SupabaseSuggestionRepository
+  ↓
+Supabase（Free。人間が用意したプロジェクト）
+```
+
+### 受け入れ条件
+
+- [ ] Supabase Free のプロジェクトを利用する（人間が作成。AI はアカウント作成しない）
+- [ ] 投稿用の最小テーブルを用意する
+- [ ] `SuggestionRepository` の既存契約（`list` / `create`）を維持する
+- [ ] Supabase 用 Repository 実装を追加する
+- [ ] `list()` で Supabase から投稿一覧を取得できる
+- [ ] `create()` で Supabase へ投稿を保存できる
+- [ ] pages / components は Supabase を import しない
+- [ ] `SuggestionsContext` は Supabase を import しない
+- [ ] UI の大幅変更をしない
+- [ ] 既存テストを壊さない
+- [ ] Supabase Repository に必要なテストを追加する
+- [ ] `npm test -- --run` が成功する
+- [ ] `npm run build` が成功する
+
+### Goal C でやること
+
+- 最小テーブルと、list / create に必要な列の整理
+- `SupabaseSuggestionRepository`（契約は既存のまま）
+- 接続設定（環境変数）。Secret はコミットしない
+- Context へは Repository 注入または工場関数で差し替え（Context は製品 API を知らない）
+- 契約テスト（実 Key なしで通る形を優先。結合が必要なら人間の環境に依存することを明示して STOP）
+
+### Goal C でやらないこと
+
+- 本格認証
+- 添付ファイル
+- 共感・ステータス・管理者回答の DB 永続化
+- 管理者権限
+- Realtime
+- 共通 PF API 本体
+- 大規模リファクタリング / UI リニューアル
+- 有料プラン前提の機能
+- React UI / pages / Context から `supabase.from(...)` すること
+
+### TypeScript 型と DB（1対1にコピーしない）
+
+`Suggestion` は UI 用。列に全部載せる必要はない。
+
+| 値 | Goal C の扱い |
+|----|----------------|
+| title, body, category | DB に保存する |
+| isAnonymous, authorName | DB に保存する（匿名時は名前を空） |
+| id, createdAt | DB 側で持つのが自然。契約の `string` に写す |
+| status, empathyCount, hasResponse, response | 今回の create 対象外。list で返すならアダプタが初期値を埋めるか、列は最小のデフォルトのみ。更新 API は作らない |
+| **isMine** | **DB に保存しない。** UI 判定。認証後はユーザー比較で算出する。Goal C は認証しないので list では `false` などで埋めてよい |
+
+### Goal C 固有の STOP（実装せず人間へ返す）
+
+- Supabase プロジェクト / アカウント操作が必要
+- URL / API Key / Secret の発行・入力が必要
+- RLS や anonymous access の方針が未決
+- 本番へ影響する操作、課金の可能性がある操作
+- 共通 PF 仕様が必要
+- pages / Context を製品依存にしないと進まない、と判断した場合
+
+Secret をリポジトリに置かない。公開 DB へ無制限アクセスする設計にはしない。RLS の決め方が必要なら実装を止める。
+
+---
+
+## 対象外（Goal A / B / C 共通）
 
 - 本格認証
 - 添付ファイル
@@ -137,6 +219,7 @@ DB / 認証（共通PF側。React から直接触らない）
 
 - Goal A: 既存画面テストが維持され、list / create の Repository 契約テストがある
 - Goal B: 契約テストで「Repository 再生成後も list できる」こと。ブラウザリロードは手動デモであり、ループの pass/fail にはしない
+- Goal C: pages / Context が Supabase を import せず、list / create が Repository 経由で外部 DB とやり取りできること。実プロジェクトが無い周は結合を無理に通さず STOP
 
 カバレッジ閾値（`vite.config.ts` の 80%）を下げる変更はしない。
 
@@ -144,6 +227,6 @@ DB / 認証（共通PF側。React から直接触らない）
 
 ## 実験の終了
 
-- Goal A は達成済み
-- Goal B の受け入れ条件をすべて満たしたら、Goal B は達成とする
+- Goal A / B は達成済み
+- Goal C の受け入れ条件をすべて満たしたら、Goal C は達成とする
 - 実験を終えたら、本ファイルの実験明示を外し、通常のバックエンド禁止へ戻す

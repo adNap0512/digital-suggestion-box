@@ -38,11 +38,11 @@ AI による自動起動は無効（`disable-model-invocation: true`）。
 
 ## 作業中に守ること
 
-- `.cursor/rules/backend-poc-rule.mdc` と `GOAL.md` の範囲外を実装しない
-- Goal A 中は永続 DB・HTTP API・特定 DB 製品を入れない
-- pages / components に保存実装を置かない
+- `.cursor/rules/backend-poc-rule.mdc` と `GOAL.md` の **現在の Goal** の範囲外を実装しない
+- pages / components / Context に DB 製品のクライアントや保存実装を置かない（Context は Repository 契約のみ）
 - 既存 UI を大きく変えない
 - 既存テストを壊したまま終えない
+- Secret をリポジトリに書かない。アカウント作成・課金・本番操作はしない
 
 ## STOP 条件
 
@@ -50,8 +50,10 @@ AI による自動起動は無効（`disable-model-invocation: true`）。
 
 - GOAL 変更が必要
 - アーキテクチャ上の大きな判断が必要
-- 外部サービス作成が必要
-- Secret / 認証情報が必要
+- 外部サービス作成・アカウント操作が必要
+- Secret / URL / API Key の発行・入力が必要
+- RLS や権限方式の人間判断が必要
+- 課金の可能性がある操作
 - 共通 PF 仕様が必要
 - 既存 UI を大きく変更する必要がある
 - テスト失敗の原因が特定できない
