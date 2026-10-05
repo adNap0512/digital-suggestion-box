@@ -23,7 +23,10 @@ digital-suggestion-box/
 │     ├─ deploy.yml              # Cloudflare Workers へのデプロイ（本線）
 │     └─ deploy-github-pages.yml # GitHub Pages（任意・手動）
 ├─ docs/
-│  └─ directory-structure.md
+│  ├─ directory-structure.md
+│  └─ learning/
+│     ├─ ループエンジニアリングとは.md
+│     └─ コマンドテンプレ
 ├─ src/
 │  ├─ main.tsx
 │  ├─ App.tsx
@@ -141,7 +144,8 @@ coverage/       # カバレッジレポート
 |--------|------|------|
 | `TopPage` | `/` | サマリー、最近の投稿、各画面への導線 |
 | `PostFormPage` | `/post` | 投稿フォーム（匿名/記名、下書き保存） |
-| `ListDetailPage` | `/list` | 一覧・詳細・共感・管理者操作 |
+| `ListDetailPage` | `/list` | 一覧・詳細・共感 |
+| `AdminListPage` | `/admin` | 一覧・ステータス・回答・削除（認証なしの PoC） |
 
 ---
 
