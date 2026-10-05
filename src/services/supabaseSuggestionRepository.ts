@@ -33,10 +33,11 @@ export interface RemoteQueryResult<T> {
 export interface SuggestionsRemoteClient {
   listRows(): Promise<RemoteQueryResult<SuggestionRow[]>>;
   insertRow(input: SuggestionInsert): Promise<RemoteQueryResult<SuggestionRow>>;
+  deleteRow(id: string): Promise<RemoteQueryResult<null>>;
 }
 
 /**
- * Goal C 用 Repository。契約は既存の list / create のまま。
+ * Goal C 用 Repository。契約は list / create / delete。
  * 実 Key や SDK には依存せず、クライアント境界だけを受け取る。
  */
 export class SupabaseSuggestionRepository implements SuggestionRepository {
@@ -61,6 +62,14 @@ export class SupabaseSuggestionRepository implements SuggestionRepository {
     }
     // 今セッションの投稿なので Memory / Persistent の create と同じく isMine を true にする
     return toSuggestion(data, { isMine: true });
+  }
+
+  async delete(id: string): Promise<void> {
+    const { error } = await this.client.deleteRow(id);
+    // 失敗を成功にしない。Context は reject のとき一覧から外さない
+    if (error) {
+      throw new Error(error.message);
+    }
   }
 }
 

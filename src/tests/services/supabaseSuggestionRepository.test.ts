@@ -32,6 +32,8 @@ class FakeSuggestionsRemoteClient implements SuggestionsRemoteClient {
   listError: { message: string } | null = null;
   insertError: { message: string } | null = null;
   lastInsert: SuggestionInsert | null = null;
+  lastDeleteId: string | null = null;
+  deleteError: { message: string } | null = null;
 
   async listRows() {
     if (this.listError) {
@@ -56,6 +58,15 @@ class FakeSuggestionsRemoteClient implements SuggestionsRemoteClient {
     };
     this.rows = [row, ...this.rows];
     return { data: { ...row }, error: null };
+  }
+
+  async deleteRow(id: string) {
+    this.lastDeleteId = id;
+    if (this.deleteError) {
+      return { data: null, error: this.deleteError };
+    }
+    this.rows = this.rows.filter((row) => row.id !== id);
+    return { data: null, error: null };
   }
 }
 
@@ -157,6 +168,38 @@ describe('SuggestionRepository（Supabase / 注入クライアント）', () => 
     await expect(createRepository(client).list()).rejects.toThrow(
       'permission denied for table suggestions',
     );
+  });
+
+  it('delete は指定 id を消し、同じクライアントの list から外れる', async () => {
+    const client = new FakeSuggestionsRemoteClient();
+    client.rows = [sampleRow];
+    const repository = createRepository(client);
+
+    await repository.delete(sampleRow.id);
+    const listed = await repository.list();
+
+    expect(client.lastDeleteId).toBe(sampleRow.id);
+    expect(listed).toHaveLength(0);
+  });
+
+  it('存在しない id の delete はエラーにしない', async () => {
+    const client = new FakeSuggestionsRemoteClient();
+    client.rows = [sampleRow];
+
+    const repository = createRepository(client);
+    await expect(repository.delete('missing-id')).resolves.toBeUndefined();
+    expect(await repository.list()).toHaveLength(1);
+  });
+
+  it('delete でクライアントがエラーを返したら成功扱いにしない', async () => {
+    const client = new FakeSuggestionsRemoteClient();
+    client.rows = [sampleRow];
+    client.deleteError = { message: 'permission denied for table suggestions' };
+
+    await expect(createRepository(client).delete(sampleRow.id)).rejects.toThrow(
+      'permission denied for table suggestions',
+    );
+    expect(client.rows).toHaveLength(1);
   });
 
   it('create でクライアントがエラーを返したら成功扱いにしない', async () => {

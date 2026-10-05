@@ -24,6 +24,7 @@ interface SuggestionsContextValue {
   empathize: (id: string) => void;
   changeStatus: (id: string, status: Status) => void;
   submitResponse: (id: string, response: string) => void;
+  removeSuggestion: (id: string) => void;
 }
 
 const SuggestionsContext = createContext<SuggestionsContextValue | null>(null);
@@ -85,6 +86,23 @@ export function SuggestionsProvider({
     );
   }, []);
 
+  const removeSuggestion = useCallback(
+    (id: string) => {
+      // 進行中の list が、削除後の一覧を古い結果で上書きしないため
+      const generation = ++loadGenerationRef.current;
+      void repo.delete(id).then(
+        () => {
+          if (generation !== loadGenerationRef.current) return;
+          setSuggestions((prev) => prev.filter((item) => item.id !== id));
+        },
+        () => {
+          // 失敗時は一覧に残す。成功扱いにしない
+        },
+      );
+    },
+    [repo],
+  );
+
   const value = useMemo(
     () => ({
       suggestions,
@@ -92,8 +110,16 @@ export function SuggestionsProvider({
       empathize,
       changeStatus,
       submitResponse,
+      removeSuggestion,
     }),
-    [suggestions, addSuggestion, empathize, changeStatus, submitResponse],
+    [
+      suggestions,
+      addSuggestion,
+      empathize,
+      changeStatus,
+      submitResponse,
+      removeSuggestion,
+    ],
   );
 
   return (

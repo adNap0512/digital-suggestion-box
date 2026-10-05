@@ -13,7 +13,7 @@ export interface KeyValueStorage {
 
 /**
  * 保存口に JSON 配列を書く Repository。
- * Context / pages はこれを知らず、契約（list / create）だけに依存する。
+ * Context / pages はこれを知らず、契約（list / create / delete）だけに依存する。
  */
 export class PersistentSuggestionRepository implements SuggestionRepository {
   constructor(
@@ -31,6 +31,12 @@ export class PersistentSuggestionRepository implements SuggestionRepository {
     const next = [created, ...this.readAll()];
     this.writeAll(next);
     return { ...created };
+  }
+
+  async delete(id: string): Promise<void> {
+    // 再生成後の list からも消えるよう、同じ保存口へ書き戻す
+    const next = this.readAll().filter((item) => item.id !== id);
+    this.writeAll(next);
   }
 
   private readAll(): Suggestion[] {

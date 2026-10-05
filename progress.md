@@ -6,15 +6,18 @@
 
 ## Current Goal
 
-Goal C（未達）
+Goal D（未達）
 
-既存の `SuggestionRepository`（`list` / `create`）を維持したまま、Supabase Free を外部 DB として Repository 差し替えで接続できるかを検証する。コード側の Repository / アダプタ / factory は揃っている。リモート環境未準備のため実 list / create は未確認。
+本線は **別リポジトリのまま共通 PF API へ HTTP 接続**（方式 A）。  
+加えて、将来フロントを共通 PF リポジトリへ統合（方式 B）しても、機能単位で移植できる境界を維持する。
+
+いま共通 PF リポジトリへは移さない。共通 PF の仕様は推測して実装しない。
 
 ---
 
 ## Iteration
 
-11
+12（Goal C 達成周。Goal D の実装イテレーションはまだ始めていない）
 
 ---
 
@@ -23,10 +26,12 @@ Goal C（未達）
 - Iteration 0: 調査とループ環境構築
 - Iteration 1–2: Goal A
 - Iteration 3–5: Goal B（Web Storage PoC）
-- Goal C の定義
-- Iteration 6–7: リモート手順整理、migration 案、`.env.example`
-- Iteration 8–10: Repository、SDK アダプタ、default factory、Context は SDK 非依存
-- Iteration 11: 実環境の準備状況を確認。未準備のため **実通信せず STOP**
+- Iteration 6–7: Goal C 開始、STOP、migration 案、`.env.example`
+- Iteration 8–10: Supabase Repository、SDK アダプタ、default factory
+- Iteration 11: 実環境未準備のため実通信せず STOP
+- ループ外: Free Organization / Project 作成、Resume、link、migration 適用（人間）
+- Iteration 12: `.env.local`（URL / publishable key のみ）、Repository 経由の list / create / 再 list、test / build、Goal C 達成判定
+- ループ外: 人間が Goal D 方針を確定（方式 A 本線 + 機能単位の移植余地）。`GOAL.md` に反映
 
 ---
 
@@ -35,33 +40,43 @@ Goal C（未達）
 ```txt
 React UI
   ↓
-SuggestionsContext（repository prop 優先。省略時 default factory。SDK 非依存）
+SuggestionsContext（製品非依存。repository prop 優先 = 将来の注入口）
   ↓
 createDefaultSuggestionRepository
-  ├─ URL + publishable key あり → SupabaseSuggestionRepository（実行時は未使用）
-  └─ 未設定 → PersistentSuggestionRepository → Web Storage（現在の実行経路）
+  ├─ URL + publishable key あり → SupabaseSuggestionRepository → RemoteClient → SDK → Supabase
+  └─ 未設定 / テスト（.env.test） → PersistentSuggestionRepository → Web Storage
 ```
 
-準備チェック（値は記録しない）:
+Goal D で目指す依存（未実装。仕様が揃うまで Client の中身は足さない）:
 
-| 項目 | 状態 |
-|------|------|
-| Supabase Free プロジェクト | 未確認（CLI 未ログイン、MCP なし） |
-| `suggestions` テーブル | 未確認 |
-| migration リモート適用 | 未準備（ローカル案のみ） |
-| RLS ON / anon SELECT+INSERT のみ | 未確認 |
-| `.env.local` | 未準備 |
-| `VITE_SUPABASE_URL` | 未準備 |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | 未準備 |
-| secret / service_role をフロントで未使用 | コード上は維持 |
+```txt
+App（このリポジトリを維持。機能内部から App / main を import しない）
+  ↓
+Suggestions feature
+  ↓
+SuggestionRepository（外部注入可能）
+  ↓
+CommonPF Client / Adapter
+  ↓
+共通PF API（方式 A の本線）
+```
+
+- Goal C の実疎通は完了。`.env.local` の値は本ファイルに書かない
+- pages / Context は Supabase SDK を import しない
+- 共通 PF の API / Auth / Router 仕様は未確定
 
 ---
 
 ## Next Task
 
-人間が Free プロジェクト・テーブル・RLS・`.env.local`（URL / publishable key のみ）を用意したあと、Iteration 12 の候補:
+Goal D の実装ループは、人間が `/loop-engineering` 等で開始するまで始めない。
 
-**Repository 経路で実 DB の list / create / 再 list を確認する。ダミー Key は使わない。**
+仕様が無いあいだの最小候補（やるなら 1 つだけ）:
+
+- 機能単位の置き場所を確認し、`App` / `main` への新規依存を増やさないことだけ守る
+- CommonPF Repository / Client の空の置き場は、仕様確定後
+
+やらない: エンドポイント推測、共通 PF リポジトリへの移動、移植のためだけの大規模フォルダ移動
 
 ---
 
@@ -69,45 +84,36 @@ createDefaultSuggestionRepository
 
 | 項目 | 結果 |
 |------|------|
-| 実 DB list / create | 未実施（環境未準備のため STOP） |
-| `npm test -- --run` | 成功（16 ファイル / 65 件） |
-| `npm run build` | 成功 |
-| Goal A / B | 達成 |
-| Goal C | 未達 |
+| Goal A / B / C | 達成 |
+| Goal D | **未達**（方針のみ。接続実装なし） |
+| 共通 PF 仕様 | 未確定のため接続コードは未着手 |
 
 ---
 
 ## Findings
 
-- `.env.local` が無い。プロセス環境にも URL / Key が無い
-- CLI `projects list` は未ログイン
-- このセッションに Supabase MCP は無い
-- ダミー URL / Key では進めないと判断して実通信していない
+- 既存の `repository` prop は方式 A / B の両方で注入口になる
+- フォルダを今すぐ `src/features/suggestions/` へ全部移すのは「移植のためだけの大規模リファクタ」に当たりうる。Goal D では禁止に近い
 
 ---
 
 ## Decisions
 
-- 1つでも未準備なら実通信しない
-- secret / service_role は使わない
-- テスト投稿の DELETE 権限は追加しない（今回は投稿自体していない）
+- 本線は方式 A（独立リポ → HTTP → 共通 PF API）
+- 方式 B の余地は残すが、今はフロント統合しない
+- `SuggestionsContext` / `SuggestionRepository` 境界を維持する
+- 共通 PF 接続は Client / Repository に閉じる
+- API URL / 認証 / Router ベースパス / ユーザー情報は後から外部注入
+- 仕様未確定のまま実装しない
 
 ---
 
 ## Problems
 
-人間待ち（順）:
-
-1. Free Organization 上に Goal C 専用プロジェクトを作成する
-2. ローカル migration を適用する（`suggestions`、RLS ON、anon の SELECT/INSERT のみ）
-3. Project URL と publishable key を `.env.local` に入れる（Git に上げない。値はチャットに貼らない）
-4. 準備済み / 未準備だけを Cursor に伝える
-5. `/loop-engineering` で Iteration 12 を起動する
+なし。Goal D は仕様待ち。
 
 ---
 
 ## Stop Reason
 
-外部環境未準備。プロジェクト存在、テーブル、RLS、`.env.local`、URL / publishable key を確認できず、実通信を行っていない。
-
-Goal C は未達。次は人間が準備したあと `/loop-engineering` で Iteration 12 を起動する。
+人間が Goal D 方針を `GOAL.md` に書いた。共通 PF 仕様が無いため接続実装はしない。次周は自動で開始しない。

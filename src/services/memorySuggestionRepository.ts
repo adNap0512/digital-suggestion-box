@@ -21,6 +21,10 @@ export class MemorySuggestionRepository implements SuggestionRepository {
     this.items = [created, ...this.items];
     return { ...created };
   }
+
+  async delete(id: string): Promise<void> {
+    this.items = this.items.filter((item) => item.id !== id);
+  }
 }
 
 /** Context の addSuggestion と同じ初期値にし、後で配線したときの表示差を防ぐ */

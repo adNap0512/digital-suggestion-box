@@ -43,6 +43,12 @@ describe('TopPage', () => {
     );
   });
 
+  it('管理者画面への導線が表示される', async () => {
+    await renderTopPage();
+    expect(screen.getByTestId('cta-admin')).toHaveTextContent('管理者画面');
+    expect(screen.getByTestId('cta-admin')).toHaveAttribute('href', '/admin');
+  });
+
   it('サマリーカードが表示される', async () => {
     await renderTopPage();
     expect(screen.getAllByTestId('summary-card').length).toBe(3);

@@ -7,12 +7,13 @@
 
 ## 概要
 
-- 3 画面: トップ / 投稿フォーム / 投稿一覧・詳細
+- 一般ユーザー 3 画面: トップ / 投稿フォーム / 投稿一覧・詳細
+- 管理者画面 `/admin`: 一覧・ステータス変更・回答・削除（認証は未実装の PoC）
 - 技術スタック: React + Vite + TypeScript + Vitest
 - **本番バックエンド / DB / 共通 PF API は未実装**
 - Repository 境界を追加済み（UI は保存実装を直接知らない）
 - Web Storage を使った **永続化 PoC** を実装済み（Web Storage はバックエンドではない）
-- 永続化対象: 投稿作成・投稿一覧取得（同一ブラウザならリロード後も残る）
+- 永続化対象: 投稿作成・投稿一覧取得・投稿削除（同一ブラウザならリロード後も残る）
 - まだメモリ上: 共感・ステータス変更・管理者回答
 
 詳細なディレクトリ構成は [docs/directory-structure.md](./docs/directory-structure.md) を参照してください。  
@@ -56,9 +57,11 @@ DB / 認証
 
 | 状態 | 内容 |
 |------|------|
-| 永続化済み（Web Storage） | 投稿作成、投稿一覧取得 |
+| 永続化済み（Web Storage / Supabase） | 投稿作成、投稿一覧取得、投稿削除 |
 | メモリ上のみ | 共感、ステータス変更、管理者回答 |
 | 未実装 | 本格認証、添付保存、管理者権限、共通 PF API、本番 DB |
+
+管理者画面は URL で分けているだけで、ログインはありません。Supabase では未ログインの `anon` に DELETE を許可しています。公開 URL を知る人は、技術的には投稿を削除できます。
 
 下書き保存は投稿とは別キーで `localStorage` に書きます。画面を開き直したときの自動復元は未実装です。添付は UI のみです。
 
@@ -90,6 +93,7 @@ https://github.com/adNap0512/digital-suggestion-box
 | トップ | https://digital-suggestion-box.kyuu0512.workers.dev/#/ |
 | 投稿フォーム | https://digital-suggestion-box.kyuu0512.workers.dev/#/post |
 | 投稿一覧 | https://digital-suggestion-box.kyuu0512.workers.dev/#/list |
+| 管理者画面（認証なし） | https://digital-suggestion-box.kyuu0512.workers.dev/#/admin |
 
 GitHub リポジトリの Secrets:
 
@@ -124,7 +128,7 @@ http://localhost:5173
 
 ## テスト実行
 
-現在 **テストファイル 13、テスト 50 件**（`npm test` ですべて成功することを確認）。カバレッジ閾値は 80%（`vite.config.ts`）。
+カバレッジ閾値は 80%（`vite.config.ts`）。
 
 ```powershell
 npm.cmd test
@@ -148,9 +152,12 @@ npm run build
 |------|------|------|
 | トップ | `/` | サマリー、最近の投稿、各画面への導線 |
 | 投稿フォーム | `/post` | カテゴリ、匿名/記名、タイトル、本文、送信 |
-| 投稿一覧 | `/list` | フィルタ、カード一覧、詳細、共感、管理者操作 |
+| 投稿一覧 | `/list` | フィルタ、カード一覧、詳細、共感 |
+| 管理者画面 | `/admin` | 投稿一覧、ステータス変更、回答、削除。認証は未実装 |
 
-ルーティングは `HashRouter` のため、公開 URL では `/#/` `/#/post` `/#/list` になります。
+ルーティングは `HashRouter` のため、公開 URL では `/#/` `/#/post` `/#/list` `/#/admin` になります。
+
+`/admin` は管理者認証ではありません。画面上でも「認証は未実装の PoC」と表示します。
 
 ## 公開（デプロイ）の技術メモ
 

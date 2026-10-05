@@ -7,4 +7,6 @@ import type { DraftForm, Suggestion } from '../utils/types';
 export interface SuggestionRepository {
   list(): Promise<Suggestion[]>;
   create(draft: DraftForm): Promise<Suggestion>;
+  /** 無い id は成功扱い。画面側の確認後に呼ぶ */
+  delete(id: string): Promise<void>;
 }

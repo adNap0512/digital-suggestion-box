@@ -63,6 +63,23 @@ describe('SuggestionRepository（Memory）', () => {
     expect(created.authorName).toBe('山田');
   });
 
+  it('delete した投稿は list から消える', async () => {
+    const repository = createRepository();
+    await repository.delete(mockSuggestions[0].id);
+    const listed = await repository.list();
+
+    expect(listed.some((s) => s.id === mockSuggestions[0].id)).toBe(false);
+    expect(listed).toHaveLength(mockSuggestions.length - 1);
+  });
+
+  it('存在しない id の delete は成功し、他の投稿は残る', async () => {
+    const repository = createRepository();
+    await repository.delete('missing-id');
+    const listed = await repository.list();
+
+    expect(listed).toHaveLength(mockSuggestions.length);
+  });
+
   it('list の戻り値を変更しても Repository 内部は変わらない', async () => {
     const repository = createRepository();
     const listed = await repository.list();

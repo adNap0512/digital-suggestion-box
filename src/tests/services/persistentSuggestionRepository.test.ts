@@ -66,6 +66,26 @@ describe('SuggestionRepository（Persistent / 保存口）', () => {
     expect(listed.some((s) => s.title === sampleDraft.title)).toBe(true);
   });
 
+  it('delete した投稿は、同じ保存口で再生成したインスタンスの list に無い', async () => {
+    const storage = new MemoryKeyValueStorage();
+    const first = createRepository(storage);
+    await first.delete(mockSuggestions[0].id);
+
+    const second = createRepository(storage);
+    const listed = await second.list();
+
+    expect(listed.some((s) => s.id === mockSuggestions[0].id)).toBe(false);
+    expect(listed).toHaveLength(mockSuggestions.length - 1);
+  });
+
+  it('存在しない id の delete は保存済みの投稿を消さない', async () => {
+    const repository = createRepository(new MemoryKeyValueStorage());
+    await repository.delete('missing-id');
+    const listed = await repository.list();
+
+    expect(listed).toHaveLength(mockSuggestions.length);
+  });
+
   it('別の保存口で再生成したインスタンスからは見えない', async () => {
     const first = createRepository(new MemoryKeyValueStorage(), []);
     await first.create(sampleDraft);

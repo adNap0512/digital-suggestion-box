@@ -32,6 +32,9 @@ export interface SuggestionsSupabaseClient {
         single(): PromiseLike<RemoteQueryResult<SuggestionRow>>;
       };
     };
+    delete(): {
+      eq(column: string, value: string): PromiseLike<RemoteQueryResult<null>>;
+    };
   };
 }
 
@@ -63,6 +66,15 @@ export class SupabaseSuggestionsRemoteClient implements SuggestionsRemoteClient 
 
     return toRemoteResult(data, error);
   }
+
+  async deleteRow(id: string): Promise<RemoteQueryResult<null>> {
+    const { error } = await this.supabase
+      .from('suggestions')
+      .delete()
+      .eq('id', id);
+
+    return toRemoteResult(null, error);
+  }
 }
 
 function toRemoteResult<T>(
@@ -90,5 +102,9 @@ export function tryCreateSupabaseSuggestionsRemoteClientFromEnv(
     return null;
   }
 
-  return new SupabaseSuggestionsRemoteClient(createClient(url, publishableKey));
+  // supabase-js の builder は delete を型に含めると代入検査が無限再帰になる。
+  // 実行時の from().delete().eq() は同じなので、Adapter が使う最小面へ狭める。
+  return new SupabaseSuggestionsRemoteClient(
+    createClient(url, publishableKey) as unknown as SuggestionsSupabaseClient,
+  );
 }

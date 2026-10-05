@@ -38,15 +38,16 @@ SuggestionsContext（画面用の状態。保存方式は知らない）
   ↓
 SuggestionRepository / SuggestionService（契約）
   ↓
-保存アダプタ（Goal A: Memory / Goal B: Web Storage / Goal C: Supabase Repository）
+保存アダプタ（Goal A: Memory / Goal B: Web Storage / Goal C: Supabase Repository / Goal D: CommonPF Repository・Client）
   ↓
-将来は HTTP / 共通PF API → DB / 認証（React から直接触らない）
+HTTP / 共通PF API（React から直接触らない。仕様が揃うまで実装しない）
 ```
 
 - pages / components は保存実装を import しない
-- SuggestionsContext は特定 DB 製品に依存しない
-- React に DB クライアントを置かない
-- 保存方式の追加は Repository 実装の差し替えで行う
+- SuggestionsContext は特定 DB 製品・共通 PF 製品に依存しない
+- React に DB クライアントや共通 PF SDK を置かない
+- 保存方式の追加は Repository 実装の差し替え、または `SuggestionsProvider` への注入で行う
+- App.tsx / main.tsx / デプロイ環境への不要な依存を増やさない
 
 ---
 
@@ -113,7 +114,7 @@ SuggestionRepository / SuggestionService（契約）
 
 ---
 
-## Goal C（現在のゴール）
+## Goal C（達成済み）
 
 Supabase Free を外部 DB として使い、既存の `SuggestionRepository`（`list` / `create`）を維持したまま、投稿の一覧取得と新規作成を Supabase へ保存・取得できることを検証する。
 
@@ -136,19 +137,19 @@ Supabase（Free。人間が用意したプロジェクト）
 
 ### 受け入れ条件
 
-- [ ] Supabase Free のプロジェクトを利用する（人間が作成。AI はアカウント作成しない）
-- [ ] 投稿用の最小テーブルを用意する
-- [ ] `SuggestionRepository` の既存契約（`list` / `create`）を維持する
-- [ ] Supabase 用 Repository 実装を追加する
-- [ ] `list()` で Supabase から投稿一覧を取得できる
-- [ ] `create()` で Supabase へ投稿を保存できる
-- [ ] pages / components は Supabase を import しない
-- [ ] `SuggestionsContext` は Supabase を import しない
-- [ ] UI の大幅変更をしない
-- [ ] 既存テストを壊さない
-- [ ] Supabase Repository に必要なテストを追加する
-- [ ] `npm test -- --run` が成功する
-- [ ] `npm run build` が成功する
+- [x] Supabase Free のプロジェクトを利用する（人間が作成。AI はアカウント作成しない）
+- [x] 投稿用の最小テーブルを用意する
+- [x] `SuggestionRepository` の既存契約（`list` / `create`）を維持する
+- [x] Supabase 用 Repository 実装を追加する
+- [x] `list()` で Supabase から投稿一覧を取得できる
+- [x] `create()` で Supabase へ投稿を保存できる
+- [x] pages / components は Supabase を import しない
+- [x] `SuggestionsContext` は Supabase を import しない
+- [x] UI の大幅変更をしない
+- [x] 既存テストを壊さない
+- [x] Supabase Repository に必要なテストを追加する
+- [x] `npm test -- --run` が成功する
+- [x] `npm run build` が成功する
 
 ### Goal C でやること
 
@@ -195,7 +196,83 @@ Secret をリポジトリに置かない。公開 DB へ無制限アクセスす
 
 ---
 
-## 対象外（Goal A / B / C 共通）
+## Goal D（現在のゴール）
+
+共通 PF API への接続準備に加えて、将来デジタル目安箱フロントを共通 PF リポジトリへ統合する場合でも、機能単位で移植できる構成を維持する。
+
+**本線（10/9 時点）は方式 A。** このリポジトリは維持する。いま共通 PF リポジトリへフロントを移さない。
+
+```txt
+方式 A（本線）: digital-suggestion-box  → HTTP → 共通PF API
+
+方式 B（将来の余地）: common-platform の Router / Auth / Header の下に
+  features/suggestions 相当を載せる。Suggestions の中身は大きく書き直さない
+```
+
+今このリポジトリでは、デジタル目安箱を 1 つの機能まとまりとして扱う。目安の置き方は次（実装は Goal D の範囲で最小。フォルダ移動だけの大規模リファクタはしない）。
+
+```txt
+digital-suggestion-box/src/features/suggestions/
+  components / pages / context / repositories / clients / types / tests
+```
+
+将来、同等のまとまりを `common-platform/features/suggestions/` へ持っていけることを目標にする。  
+`App.tsx` / `main.tsx` からの import や、デプロイ固有コードへの依存を機能内部に増やさない。
+
+```txt
+App
+  ↓
+Suggestions feature（Context / pages / components）
+  ↓
+SuggestionRepository（既存契約。外部注入可能）
+  ↓
+CommonPF Client / Adapter（接続はこの層に閉じる）
+  ↓
+共通PF API
+```
+
+API URL、認証情報、Router のベースパス、共通 PF のユーザー情報は、仕様が揃ったあと外部から渡せるようにする。現状の `SuggestionsProvider` の `repository` prop 優先はその注入口として使う。
+
+### 受け入れ条件
+
+- [ ] デジタル目安箱固有機能を機能単位で分離できる
+- [ ] App / main / deploy 環境への不要な依存を増やさない
+- [ ] Repository / Client を外部注入可能にする
+- [ ] 共通 PF の Router / Auth を将来注入できる余地を残す
+- [ ] 別リポジトリ運用（方式 A）と共通 PF 統合（方式 B）の両方を妨げない
+- [ ] 移植のためだけの大規模リファクタリングは行わない
+- [ ] `SuggestionsContext` / `SuggestionRepository` の境界を維持する
+- [ ] 共通 PF 接続は CommonPF Repository / Client に閉じる（pages / Context は共通 PF を import しない）
+- [ ] 共通 PF の未確定仕様を推測して実装しない
+- [ ] 既存テストを壊さない
+- [ ] `npm test -- --run` が成功する
+- [ ] `npm run build` が成功する
+
+### Goal D でやること
+
+- 本リポジトリを維持したまま、機能単位で移植しやすい境界を保つ
+- CommonPF 用 Repository / Client の置き場所と注入口の整理（仕様確定後に中身を足す）
+- 方式 A を本線とし、方式 B を妨げない依存関係にする
+
+### Goal D でやらないこと
+
+- 共通 PF リポジトリへのフロント移動
+- 共通 PF API 本体の構築
+- エンドポイント・認証方式・ユーザーモデルの推測実装
+- 認証・添付・共感 / ステータス / 回答の API 化
+- UI の大幅変更
+- 移植性のためだけの過剰な抽象化や大規模リファクタリング
+
+### Goal D 固有の STOP（実装せず人間へ返す）
+
+- 共通 PF の API / Auth / Router 仕様が必要
+- 方式 A と方式 B のどちらで実装するか、人間の再判断が必要
+- Secret / API URL の発行・入力が必要
+- pages / Context を共通 PF に直結しないと進まない、と判断した場合
+
+---
+
+## 対象外（Goal A / B / C / D 共通）
 
 - 本格認証
 - 添付ファイル
@@ -220,6 +297,7 @@ Secret をリポジトリに置かない。公開 DB へ無制限アクセスす
 - Goal A: 既存画面テストが維持され、list / create の Repository 契約テストがある
 - Goal B: 契約テストで「Repository 再生成後も list できる」こと。ブラウザリロードは手動デモであり、ループの pass/fail にはしない
 - Goal C: pages / Context が Supabase を import せず、list / create が Repository 経由で外部 DB とやり取りできること。実プロジェクトが無い周は結合を無理に通さず STOP
+- Goal D: 方式 A を本線にしつつ機能単位の移植余地を残すこと。共通 PF 仕様が無い周は接続実装を推測せず STOP。フォルダ移動だけの大規模リファクタはしない
 
 カバレッジ閾値（`vite.config.ts` の 80%）を下げる変更はしない。
 
@@ -227,6 +305,6 @@ Secret をリポジトリに置かない。公開 DB へ無制限アクセスす
 
 ## 実験の終了
 
-- Goal A / B は達成済み
-- Goal C の受け入れ条件をすべて満たしたら、Goal C は達成とする
+- Goal A / B / C は達成済み
+- Goal D の受け入れ条件をすべて満たしたら、Goal D は達成とする（共通 PF 仕様待ちの項目は無理に満たさない）
 - 実験を終えたら、本ファイルの実験明示を外し、通常のバックエンド禁止へ戻す

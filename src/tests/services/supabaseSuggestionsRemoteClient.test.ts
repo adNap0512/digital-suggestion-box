@@ -32,6 +32,7 @@ const sampleInsert: SuggestionInsert = {
 function createFakeSdkClient(options: {
   listResult: { data: SuggestionRow[] | null; error: { message: string } | null };
   insertResult: { data: SuggestionRow | null; error: { message: string } | null };
+  deleteResult?: { data: null; error: { message: string } | null };
 }): {
   client: SuggestionsSupabaseClient;
   calls: {
@@ -40,6 +41,7 @@ function createFakeSdkClient(options: {
     order: { column: string; ascending: boolean } | null;
     insertPayload: SuggestionInsert | null;
     insertSelectColumns: string | null;
+    deleteId: string | null;
   };
 } {
   const calls = {
@@ -48,6 +50,7 @@ function createFakeSdkClient(options: {
     order: null as { column: string; ascending: boolean } | null,
     insertPayload: null as SuggestionInsert | null,
     insertSelectColumns: null as string | null,
+    deleteId: null as string | null,
   };
 
   const client: SuggestionsSupabaseClient = {
@@ -73,6 +76,18 @@ function createFakeSdkClient(options: {
                   return Promise.resolve(options.insertResult);
                 },
               };
+            },
+          };
+        },
+        delete() {
+          return {
+            eq(column: string, value: string) {
+              if (column === 'id') {
+                calls.deleteId = value;
+              }
+              return Promise.resolve(
+                options.deleteResult ?? { data: null, error: null },
+              );
             },
           };
         },
@@ -156,6 +171,41 @@ describe('SupabaseSuggestionsRemoteClient', () => {
     expect(result.data).toBeNull();
     expect(result.error).toEqual({
       message: 'new row violates row-level security',
+    });
+  });
+
+  it('DELETE は suggestions の id を指定する', async () => {
+    const { client, calls } = createFakeSdkClient({
+      listResult: { data: [], error: null },
+      insertResult: { data: null, error: null },
+    });
+
+    const result = await new SupabaseSuggestionsRemoteClient(client).deleteRow(
+      sampleRow.id,
+    );
+
+    expect(calls.table).toBe('suggestions');
+    expect(calls.deleteId).toBe(sampleRow.id);
+    expect(result.error).toBeNull();
+  });
+
+  it('DELETE error を成功扱いにしない', async () => {
+    const { client } = createFakeSdkClient({
+      listResult: { data: [], error: null },
+      insertResult: { data: null, error: null },
+      deleteResult: {
+        data: null,
+        error: { message: 'permission denied for table suggestions' },
+      },
+    });
+
+    const result = await new SupabaseSuggestionsRemoteClient(client).deleteRow(
+      sampleRow.id,
+    );
+
+    expect(result.data).toBeNull();
+    expect(result.error).toEqual({
+      message: 'permission denied for table suggestions',
     });
   });
 

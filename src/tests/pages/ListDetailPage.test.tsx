@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
@@ -62,40 +62,9 @@ describe('ListDetailPage', () => {
     expect(countEl.textContent).not.toBe(before);
   });
 
-  it('管理者向けステータス変更UIが表示される', async () => {
-    const user = userEvent.setup();
+  it('管理者向け操作は表示しない', async () => {
     await renderListPage();
-    await user.click(screen.getByTestId('admin-mode-toggle'));
-    await user.click(screen.getAllByTestId('suggestion-card')[0]);
-    expect(screen.getByTestId('admin-status-select')).toBeInTheDocument();
-  });
-
-  it('管理者向け回答入力欄が表示される', async () => {
-    const user = userEvent.setup();
-    await renderListPage();
-    await user.click(screen.getByTestId('admin-mode-toggle'));
-    await user.click(screen.getAllByTestId('suggestion-card')[0]);
-    expect(screen.getByTestId('admin-response-input')).toBeInTheDocument();
-  });
-
-  it('管理者がステータスを更新できる', async () => {
-    const user = userEvent.setup();
-    await renderListPage();
-    await user.click(screen.getByTestId('admin-mode-toggle'));
-    await user.click(screen.getAllByTestId('suggestion-card')[0]);
-    await user.selectOptions(screen.getByTestId('admin-status-select'), '対応済み');
-    await user.click(screen.getByTestId('admin-status-save'));
-    const detail = screen.getByTestId('detail-panel');
-    expect(within(detail).getByTestId('status-badge')).toHaveTextContent('対応済み');
-  });
-
-  it('管理者が回答を保存できる', async () => {
-    const user = userEvent.setup();
-    await renderListPage();
-    await user.click(screen.getByTestId('admin-mode-toggle'));
-    await user.click(screen.getAllByTestId('suggestion-card')[0]);
-    await user.type(screen.getByTestId('admin-response-input'), '対応予定です');
-    await user.click(screen.getByTestId('admin-response-save'));
-    expect(screen.getByTestId('detail-response')).toHaveTextContent('回答あり');
+    expect(screen.queryByTestId('admin-mode-toggle')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admin-section')).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { SuggestionsProvider } from './context/SuggestionsContext';
 import { TopPage } from './pages/TopPage';
 import { PostFormPage } from './pages/PostFormPage';
 import { ListDetailPage } from './pages/ListDetailPage';
+import { AdminListPage } from './pages/AdminListPage';
 
 export function App() {
   return (
@@ -15,6 +16,7 @@ export function App() {
             <Route path="/" element={<TopPage />} />
             <Route path="/post" element={<PostFormPage />} />
             <Route path="/list" element={<ListDetailPage />} />
+            <Route path="/admin" element={<AdminListPage />} />
           </Route>
         </Routes>
       </HashRouter>

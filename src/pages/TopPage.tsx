@@ -31,6 +31,9 @@ export function TopPage() {
         >
           自分の投稿を見る
         </Link>
+        <Link to="/admin" className="btn btn-secondary" data-testid="cta-admin">
+          管理者画面
+        </Link>
       </div>
 
       <div className="summary-grid" data-testid="summary-section">
