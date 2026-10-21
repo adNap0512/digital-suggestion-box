@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -30,10 +30,11 @@ describe('PostFormPage', () => {
     expect(screen.getByTestId('input-category')).toBeInTheDocument();
   });
 
-  it('匿名 / 記名を選択できる', async () => {
+  it('投稿者名を任意入力できる', async () => {
     await renderPostFormPage();
-    expect(screen.getByTestId('input-anonymous')).toBeInTheDocument();
-    expect(screen.getByTestId('input-named')).toBeInTheDocument();
+    expect(screen.getByTestId('input-author')).toBeInTheDocument();
+    expect(screen.queryByTestId('input-anonymous')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('input-named')).not.toBeInTheDocument();
   });
 
   it('タイトルを入力できる', async () => {
@@ -65,11 +66,36 @@ describe('PostFormPage', () => {
     expect(screen.getByTestId('draft-saved')).toHaveTextContent('下書きを保存しました');
   });
 
-  it('記名を選択すると名前入力欄が表示される', async () => {
+  it('名前を空のまま送ると匿名で表示される', async () => {
     const user = userEvent.setup();
     await renderPostFormPage();
-    await user.click(screen.getByTestId('input-named'));
-    expect(screen.getByTestId('input-author')).toBeInTheDocument();
+    await user.type(screen.getByTestId('input-title'), '匿名の投稿');
+    await user.type(screen.getByTestId('input-body'), '本文テスト');
+    await user.click(screen.getByTestId('btn-submit'));
+    await waitFor(() => {
+      expect(screen.getByTestId('list-detail-page')).toBeInTheDocument();
+    });
+    expect(await screen.findByText('匿名の投稿')).toBeInTheDocument();
+    const cards = screen.getAllByTestId('suggestion-card');
+    expect(within(cards[0]).getByTestId('author-label')).toHaveTextContent(
+      '匿名',
+    );
+  });
+
+  it('名前を入力して送ると投稿者名が表示される', async () => {
+    const user = userEvent.setup();
+    await renderPostFormPage();
+    await user.type(screen.getByTestId('input-author'), ' 山田太郎 ');
+    await user.type(screen.getByTestId('input-title'), '記名の投稿');
+    await user.type(screen.getByTestId('input-body'), '本文テスト');
+    await user.click(screen.getByTestId('btn-submit'));
+    await waitFor(() => {
+      expect(screen.getByTestId('list-detail-page')).toBeInTheDocument();
+    });
+    const cards = screen.getAllByTestId('suggestion-card');
+    expect(within(cards[0]).getByTestId('author-label')).toHaveTextContent(
+      '山田太郎',
+    );
   });
 
   it('送信すると一覧画面に遷移する', async () => {

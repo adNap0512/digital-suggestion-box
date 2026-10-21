@@ -12,11 +12,13 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     coverage: {
       provider: 'v8',
+      // アプリの src のみ集計する。dist / 依存 / テストは含めない
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'src/main.tsx',
         'src/utils/types.ts',
         'src/test/**',
-        'vite.config.ts',
+        'src/tests/**',
         '**/*.d.ts',
       ],
       thresholds: {

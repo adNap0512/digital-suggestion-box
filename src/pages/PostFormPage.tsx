@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CATEGORIES } from '../data/categories';
 import { useSuggestions } from '../context/SuggestionsContext';
+import { toDraftIdentity } from '../utils/authorDisplay';
 import type { Category, DraftForm } from '../utils/types';
 
 const DRAFT_KEY = 'suggestion-box-draft';
@@ -33,7 +34,10 @@ export function PostFormPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!draft.title.trim() || !draft.body.trim()) return;
-    addSuggestion(draft);
+    addSuggestion({
+      ...draft,
+      ...toDraftIdentity(draft.authorName),
+    });
     localStorage.removeItem(DRAFT_KEY);
     navigate('/list');
   };
@@ -63,47 +67,16 @@ export function PostFormPage() {
         </div>
 
         <div className="form-group">
-          <span>投稿方法</span>
-          <div className="radio-group" role="radiogroup" aria-label="匿名または記名">
-            <label
-              className={`radio-card ${draft.isAnonymous ? 'selected' : ''}`}
-            >
-              <input
-                type="radio"
-                name="anonymous"
-                data-testid="input-anonymous"
-                checked={draft.isAnonymous}
-                onChange={() => update({ isAnonymous: true })}
-              />
-              匿名で投稿
-            </label>
-            <label
-              className={`radio-card ${!draft.isAnonymous ? 'selected' : ''}`}
-            >
-              <input
-                type="radio"
-                name="anonymous"
-                data-testid="input-named"
-                checked={!draft.isAnonymous}
-                onChange={() => update({ isAnonymous: false })}
-              />
-              記名で投稿
-            </label>
-          </div>
+          <label htmlFor="authorName">投稿者名（任意）</label>
+          <input
+            id="authorName"
+            data-testid="input-author"
+            value={draft.authorName}
+            onChange={(e) => update({ authorName: e.target.value })}
+            placeholder="例：山田太郎"
+          />
+          <p className="form-help">未入力の場合は匿名で投稿されます</p>
         </div>
-
-        {!draft.isAnonymous && (
-          <div className="form-group">
-            <label htmlFor="authorName">お名前</label>
-            <input
-              id="authorName"
-              data-testid="input-author"
-              value={draft.authorName}
-              onChange={(e) => update({ authorName: e.target.value })}
-              placeholder="例: 田中"
-            />
-          </div>
-        )}
 
         <div className="form-group">
           <label htmlFor="title">タイトル</label>
@@ -136,7 +109,7 @@ export function PostFormPage() {
 
         <div className="form-notice">
           投稿内容は社内改善のために活用されます。個人を特定する情報の記載はお控えください。
-          匿名投稿の場合、投稿者名は表示されません。
+          名前を空にすると匿名として扱われ、投稿者名は表示されません。
         </div>
 
         {savedMessage && <p data-testid="draft-saved">{savedMessage}</p>}

@@ -33,21 +33,21 @@ describe('AdminListPage', () => {
   it('ステータス変更UIが表示される', async () => {
     const user = userEvent.setup();
     await renderAdminPage();
-    await user.click(screen.getAllByTestId('suggestion-card')[0]);
+    await user.click(screen.getAllByTestId('view-detail')[0]);
     expect(screen.getByTestId('admin-status-select')).toBeInTheDocument();
   });
 
   it('回答入力欄が表示される', async () => {
     const user = userEvent.setup();
     await renderAdminPage();
-    await user.click(screen.getAllByTestId('suggestion-card')[0]);
+    await user.click(screen.getAllByTestId('view-detail')[0]);
     expect(screen.getByTestId('admin-response-input')).toBeInTheDocument();
   });
 
   it('ステータスを更新できる', async () => {
     const user = userEvent.setup();
     await renderAdminPage();
-    await user.click(screen.getAllByTestId('suggestion-card')[0]);
+    await user.click(screen.getAllByTestId('view-detail')[0]);
     await user.selectOptions(screen.getByTestId('admin-status-select'), '対応済み');
     await user.click(screen.getByTestId('admin-status-save'));
     const detail = screen.getByTestId('detail-panel');
@@ -59,7 +59,7 @@ describe('AdminListPage', () => {
   it('回答を保存できる', async () => {
     const user = userEvent.setup();
     await renderAdminPage();
-    await user.click(screen.getAllByTestId('suggestion-card')[0]);
+    await user.click(screen.getAllByTestId('view-detail')[0]);
     await user.type(screen.getByTestId('admin-response-input'), '対応予定です');
     await user.click(screen.getByTestId('admin-response-save'));
     expect(screen.getByTestId('detail-response')).toHaveTextContent('回答あり');
@@ -70,7 +70,7 @@ describe('AdminListPage', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     await renderAdminPage();
     const title = mockSuggestions[0].title;
-    await user.click(screen.getByText(title));
+    await user.click(screen.getAllByTestId('view-detail')[0]);
     await user.click(screen.getByTestId('admin-delete'));
 
     expect(window.confirm).toHaveBeenCalled();
@@ -88,7 +88,7 @@ describe('AdminListPage', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     await renderAdminPage();
     const title = mockSuggestions[0].title;
-    await user.click(screen.getAllByTestId('suggestion-card')[0]);
+    await user.click(screen.getAllByTestId('view-detail')[0]);
     await user.click(screen.getByTestId('admin-delete'));
 
     expect(screen.getAllByText(title).length).toBeGreaterThan(0);

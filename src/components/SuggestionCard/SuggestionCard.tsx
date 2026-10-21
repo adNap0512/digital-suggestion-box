@@ -1,32 +1,39 @@
+import { formatAuthorLabel } from '../../utils/authorDisplay';
 import type { Suggestion } from '../../utils/types';
 import { CategoryBadge } from '../CategoryBadge/CategoryBadge';
 import { StatusBadge } from '../StatusBadge/StatusBadge';
 
 interface SuggestionCardProps {
   suggestion: Suggestion;
-  onClick?: () => void;
+  /** 詳細を開く。カード全体クリックは使わない */
+  onViewDetail?: (trigger: HTMLButtonElement) => void;
   onEmpathize?: () => void;
 }
 
 export function SuggestionCard({
   suggestion,
-  onClick,
+  onViewDetail,
   onEmpathize,
 }: SuggestionCardProps) {
+  const interactive = Boolean(onViewDetail);
+
   return (
     <article
-      className="suggestion-card"
+      className={
+        interactive
+          ? 'suggestion-card suggestion-card--interactive'
+          : 'suggestion-card'
+      }
       data-testid="suggestion-card"
-      onClick={onClick}
-      onKeyDown={(e) => e.key === 'Enter' && onClick?.()}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
     >
       <div className="suggestion-card__header">
         <CategoryBadge category={suggestion.category} />
         <StatusBadge status={suggestion.status} />
       </div>
       <h3 className="suggestion-card__title">{suggestion.title}</h3>
+      <p className="suggestion-card__author" data-testid="author-label">
+        {formatAuthorLabel(suggestion)}
+      </p>
       <p className="suggestion-card__body">{suggestion.body}</p>
       <div className="suggestion-card__meta">
         <span data-testid="empathy-count">共感 {suggestion.empathyCount}</span>
@@ -42,12 +49,19 @@ export function SuggestionCard({
             type="button"
             className="btn btn-empathy"
             data-testid="empathy-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEmpathize();
-            }}
+            onClick={onEmpathize}
           >
             共感する
+          </button>
+        )}
+        {onViewDetail && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            data-testid="view-detail"
+            onClick={(event) => onViewDetail(event.currentTarget)}
+          >
+            詳細を見る
           </button>
         )}
       </div>

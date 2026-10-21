@@ -24,8 +24,10 @@ digital-suggestion-box/
 │     └─ deploy-github-pages.yml # GitHub Pages（任意・手動）
 ├─ docs/
 │  ├─ directory-structure.md
+│  ├─ SCREEN_FLOW.md
 │  └─ learning/
 │     ├─ ループエンジニアリングとは.md
+│     ├─ ai-method-adoption.md
 │     └─ コマンドテンプレ
 ├─ src/
 │  ├─ main.tsx
@@ -101,6 +103,7 @@ coverage/       # カバレッジレポート
 |----------|------|
 | `README.md` | 起動方法、テスト方法、画面概要、AI 開発ルールの概要 |
 | `DESIGN.md` | デジタル目安箱のデザイン仕様書（AI が参照する見た目・UX の定義） |
+| `docs/SCREEN_FLOW.md` | 画面一覧と遷移（Mermaid） |
 | `package.json` | npm scripts と依存関係 |
 | `vite.config.ts` | Vite のビルド設定（Cloudflare は `base: '/'`、GitHub Pages は `GITHUB_PAGES=true` でサブパス）、Vitest・カバレッジ設定 |
 | `wrangler.toml` | Cloudflare Workers の基本設定（`dist` を静的アセット配信） |
@@ -143,8 +146,8 @@ coverage/       # カバレッジレポート
 | ページ | パス | 役割 |
 |--------|------|------|
 | `TopPage` | `/` | サマリー、最近の投稿、各画面への導線 |
-| `PostFormPage` | `/post` | 投稿フォーム（匿名/記名、下書き保存） |
-| `ListDetailPage` | `/list` | 一覧・詳細・共感 |
+| `PostFormPage` | `/post` | 投稿フォーム（投稿者名任意、下書き保存） |
+| `ListDetailPage` | `/list` | 一覧・同一画面の詳細パネル・共感 |
 | `AdminListPage` | `/admin` | 一覧・ステータス・回答・削除（認証なしの PoC） |
 
 ---
@@ -240,6 +243,7 @@ Cursor Hooks のサンプル設定。**本番では無効**（説明・理解用
 ```txt
 README.md          … 人間向け：起動・テスト・概要・発表メモ
 DESIGN.md          … AI向け：見た目・UX・配色・コンポーネント仕様
+docs/SCREEN_FLOW.md… 画面一覧と遷移
 .cursor/rules      … AI向け：常時適用の制約
 .claude/skills     … AI向け：特定作業の手順（自動/手動起動）
 .claude/commands   … 学習用：旧形式の手動プロンプト
@@ -250,6 +254,7 @@ docs/              … 人間向け：構成メモ（本ファイル）
 |-------------|------|------|
 | `README.md` | 開発者・発表者 | 何ができて、どう動かすか |
 | `DESIGN.md` | AI エージェント | どう見せるか、どう書くか |
+| `docs/SCREEN_FLOW.md` | 開発者・AI | 画面の行き来 |
 | `docs/directory-structure.md` | 開発者 | どこに何があるか |
 
 ---
@@ -320,7 +325,7 @@ public/                      # 静的アセット（必要に応じて）
 |----------|-------------|
 | Supabase | `README.md`、`project-rule.mdc`（バックエンド禁止の解除）、本ファイル |
 | Cloudflare | `README.md`（デプロイ手順）、本ファイル |
-| 新画面 | `DESIGN.md`（付録）、`project-rule.mdc`、`test-rule.mdc` |
+| 新画面 | `DESIGN.md`（付録）、`docs/SCREEN_FLOW.md`、`project-rule.mdc`、`test-rule.mdc` |
 
 ---
 
@@ -328,3 +333,5 @@ public/                      # 静的アセット（必要に応じて）
 
 - [README.md](../README.md) — 起動・テスト方法
 - [DESIGN.md](../DESIGN.md) — デザイン仕様
+- [SCREEN_FLOW.md](./SCREEN_FLOW.md) — 画面遷移
+- [ai-method-adoption.md](./learning/ai-method-adoption.md) — AI 手法の導入判断

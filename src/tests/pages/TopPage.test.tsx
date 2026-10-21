@@ -53,4 +53,13 @@ describe('TopPage', () => {
     await renderTopPage();
     expect(screen.getAllByTestId('summary-card').length).toBe(3);
   });
+
+  it('最近の投稿カードはクリック操作用の見た目にしない', async () => {
+    await renderTopPage();
+    const cards = screen.getAllByTestId('suggestion-card');
+    for (const card of cards) {
+      expect(card).not.toHaveClass('suggestion-card--interactive');
+    }
+    expect(screen.queryByTestId('view-detail')).not.toBeInTheDocument();
+  });
 });

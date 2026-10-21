@@ -63,7 +63,7 @@ export function AdminListPage() {
           <SuggestionCard
             key={suggestion.id}
             suggestion={suggestion}
-            onClick={() => openDetail(suggestion)}
+            onViewDetail={() => openDetail(suggestion)}
           />
         ))}
       </div>
