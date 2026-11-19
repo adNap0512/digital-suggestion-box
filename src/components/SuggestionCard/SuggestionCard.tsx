@@ -5,6 +5,8 @@ import { StatusBadge } from '../StatusBadge/StatusBadge';
 
 interface SuggestionCardProps {
   suggestion: Suggestion;
+  /** このカードの詳細が開いている */
+  selected?: boolean;
   /** 詳細を開く。カード全体クリックは使わない */
   onViewDetail?: (trigger: HTMLButtonElement) => void;
   onEmpathize?: () => void;
@@ -12,19 +14,24 @@ interface SuggestionCardProps {
 
 export function SuggestionCard({
   suggestion,
+  selected = false,
   onViewDetail,
   onEmpathize,
 }: SuggestionCardProps) {
   const interactive = Boolean(onViewDetail);
+  const className = [
+    'suggestion-card',
+    interactive ? 'suggestion-card--interactive' : '',
+    selected ? 'suggestion-card--selected' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <article
-      className={
-        interactive
-          ? 'suggestion-card suggestion-card--interactive'
-          : 'suggestion-card'
-      }
+      className={className}
       data-testid="suggestion-card"
+      data-selected={selected ? 'true' : 'false'}
     >
       <div className="suggestion-card__header">
         <CategoryBadge category={suggestion.category} />
@@ -59,6 +66,7 @@ export function SuggestionCard({
             type="button"
             className="btn btn-secondary"
             data-testid="view-detail"
+            aria-expanded={selected}
             onClick={(event) => onViewDetail(event.currentTarget)}
           >
             詳細を見る

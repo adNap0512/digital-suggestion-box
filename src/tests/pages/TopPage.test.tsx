@@ -43,10 +43,10 @@ describe('TopPage', () => {
     );
   });
 
-  it('管理者画面への導線が表示される', async () => {
+  it('管理者画面への導線をトップに置かない', async () => {
     await renderTopPage();
-    expect(screen.getByTestId('cta-admin')).toHaveTextContent('管理者画面');
-    expect(screen.getByTestId('cta-admin')).toHaveAttribute('href', '/admin');
+    expect(screen.queryByTestId('cta-admin')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '管理者画面' })).not.toBeInTheDocument();
   });
 
   it('サマリーカードが表示される', async () => {

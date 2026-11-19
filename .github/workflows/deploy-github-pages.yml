@@ -40,6 +40,10 @@ jobs:
         env:
           # リポジトリ配下公開用の Vite base を有効化
           GITHUB_PAGES: "true"
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_ADMIN_LOGIN_ID: ${{ secrets.VITE_ADMIN_LOGIN_ID }}
+          VITE_ADMIN_AUTH_EMAIL: ${{ secrets.VITE_ADMIN_AUTH_EMAIL }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

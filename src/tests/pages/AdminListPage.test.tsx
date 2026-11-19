@@ -23,10 +23,10 @@ describe('AdminListPage', () => {
     vi.restoreAllMocks();
   });
 
-  it('管理者認証が未実装であることを表示する', async () => {
+  it('削除はデータベースで権限検証することを表示する', async () => {
     await renderAdminPage();
     expect(screen.getByTestId('admin-auth-notice')).toHaveTextContent(
-      '管理者認証は未実装',
+      '管理者権限をデータベースで検証',
     );
   });
 

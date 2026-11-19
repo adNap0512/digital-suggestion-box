@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FilterBar } from '../components/FilterBar/FilterBar';
 import { SuggestionCard } from '../components/SuggestionCard/SuggestionCard';
@@ -101,49 +101,50 @@ export function ListDetailPage() {
 
       <div className="card-grid">
         {filtered.map((s) => (
-          <SuggestionCard
-            key={s.id}
-            suggestion={s}
-            onViewDetail={(trigger) => {
-              lastTriggerRef.current = trigger;
-              setSelected(s);
-            }}
-            onEmpathize={() => empathize(s.id)}
-          />
+          <Fragment key={s.id}>
+            <SuggestionCard
+              suggestion={s}
+              selected={selected?.id === s.id}
+              onViewDetail={(trigger) => {
+                lastTriggerRef.current = trigger;
+                setSelected(s);
+              }}
+              onEmpathize={() => empathize(s.id)}
+            />
+            {selected?.id === s.id && (
+              <div
+                className="detail-panel"
+                data-testid="detail-panel"
+                ref={panelRef}
+                tabIndex={-1}
+              >
+                <div className="suggestion-card__header">
+                  <CategoryBadge category={selected.category} />
+                  <StatusBadge status={selected.status} />
+                </div>
+                <h2>{selected.title}</h2>
+                <p data-testid="detail-author">{formatAuthorLabel(selected)}</p>
+                <p className="detail-panel__body">{selected.body}</p>
+                <p data-testid="detail-empathy">共感 {selected.empathyCount}</p>
+                <p data-testid="detail-response">
+                  {selected.hasResponse ? '回答あり' : '回答なし'}
+                </p>
+                {selected.response && (
+                  <blockquote>{selected.response}</blockquote>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  data-testid="detail-close"
+                  onClick={closeDetail}
+                >
+                  閉じる
+                </button>
+              </div>
+            )}
+          </Fragment>
         ))}
       </div>
-
-      {selected && (
-        <div
-          className="detail-panel"
-          data-testid="detail-panel"
-          ref={panelRef}
-          tabIndex={-1}
-        >
-          <div className="suggestion-card__header">
-            <CategoryBadge category={selected.category} />
-            <StatusBadge status={selected.status} />
-          </div>
-          <h2>{selected.title}</h2>
-          <p data-testid="detail-author">{formatAuthorLabel(selected)}</p>
-          <p className="detail-panel__body">{selected.body}</p>
-          <p data-testid="detail-empathy">共感 {selected.empathyCount}</p>
-          <p data-testid="detail-response">
-            {selected.hasResponse ? '回答あり' : '回答なし'}
-          </p>
-          {selected.response && (
-            <blockquote>{selected.response}</blockquote>
-          )}
-          <button
-            type="button"
-            className="btn btn-secondary"
-            data-testid="detail-close"
-            onClick={closeDetail}
-          >
-            閉じる
-          </button>
-        </div>
-      )}
     </div>
   );
 }

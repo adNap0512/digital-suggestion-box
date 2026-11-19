@@ -11,4 +11,5 @@ coverage
 
 tsconfig.tsbuildinfo
 
-tsconfig.tsbuildinfo
+# Supabase CLI のローカル作業情報。接続情報が混ざるため Git に入れない
+supabase/.temp/

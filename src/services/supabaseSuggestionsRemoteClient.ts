@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from './supabaseClient';
 import type {
   RemoteQueryResult,
   SuggestionInsert,
@@ -104,7 +105,12 @@ export function tryCreateSupabaseSuggestionsRemoteClientFromEnv(
 
   // supabase-js の builder は delete を型に含めると代入検査が無限再帰になる。
   // 実行時の from().delete().eq() は同じなので、Adapter が使う最小面へ狭める。
+  // 通常起動は Auth と同一クライアント。テスト注入時は独立クライアント。
+  const client = env
+    ? createClient(url, publishableKey)
+    : getSupabaseClient() ?? createClient(url, publishableKey);
+
   return new SupabaseSuggestionsRemoteClient(
-    createClient(url, publishableKey) as unknown as SuggestionsSupabaseClient,
+    client as unknown as SuggestionsSupabaseClient,
   );
 }

@@ -41,7 +41,7 @@ export function AdminListPage() {
 
   const handleDelete = () => {
     if (!selected) return;
-    // 認証が無いので、誤操作だけは確認で止める
+    // 削除は必ずユーザー確認を取る
     const confirmed = window.confirm(
       'この投稿を削除しますか？削除すると元に戻せません。',
     );
@@ -54,8 +54,7 @@ export function AdminListPage() {
     <div data-testid="admin-list-page">
       <h1 className="page-title">投稿管理</h1>
       <p className="admin-notice" data-testid="admin-auth-notice">
-        管理者認証は未実装の PoC
-        です。この画面の URL を知っている人は、ステータス変更・回答・投稿の削除ができます。削除はデータベースにも反映されます。
+        Supabase接続時の削除は管理者権限をデータベースで検証します。ステータス・回答は現在のPoCでは画面内のみの変更です。
       </p>
 
       <div className="card-grid">

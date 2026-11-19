@@ -36,6 +36,23 @@ describe('SuggestionCard', () => {
     expect(screen.getByTestId('author-label')).toHaveTextContent('田中');
   });
 
+  it('選択中のカードは見た目の印を持つ', () => {
+    render(
+      <SuggestionCard
+        suggestion={mockSuggestions[0]}
+        selected
+        onViewDetail={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('suggestion-card')).toHaveClass(
+      'suggestion-card--selected',
+    );
+    expect(screen.getByTestId('view-detail')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
   it('共感ボタンは詳細と独立して動く', async () => {
     const user = userEvent.setup();
     const onViewDetail = vi.fn();

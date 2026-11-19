@@ -42,6 +42,12 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # 非秘密。パスワード / service_role は置かない。未設定なら公開ログイン不可。
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_ADMIN_LOGIN_ID: ${{ secrets.VITE_ADMIN_LOGIN_ID }}
+          VITE_ADMIN_AUTH_EMAIL: ${{ secrets.VITE_ADMIN_AUTH_EMAIL }}
 
       - name: Deploy
         uses: cloudflare/wrangler-action@v3

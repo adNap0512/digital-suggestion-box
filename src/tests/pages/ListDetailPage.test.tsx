@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom';
+import { AdminAuthProvider } from '../../auth/AdminAuthContext';
 import { Layout } from '../../components/Layout/Layout';
 import { SuggestionsProvider } from '../../context/SuggestionsContext';
 import { mockSuggestions } from '../../data/mockSuggestions';
@@ -18,6 +19,7 @@ async function renderListPage(initialPath = '/list') {
     <SuggestionsProvider
       repository={new MemorySuggestionRepository(mockSuggestions)}
     >
+      <AdminAuthProvider>
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route element={<Layout />}>
@@ -35,6 +37,7 @@ async function renderListPage(initialPath = '/list') {
           </Route>
         </Routes>
       </MemoryRouter>
+      </AdminAuthProvider>
     </SuggestionsProvider>,
   );
   await screen.findAllByTestId('suggestion-card');
@@ -169,6 +172,32 @@ describe('ListDetailPage', () => {
 
     await user.click(screen.getByTestId('nav-my-list'));
     expect(screen.queryByTestId('detail-panel')).not.toBeInTheDocument();
+  });
+
+  it('詳細は選んだカードの直後に出て、そのカードだけ選択中になる', async () => {
+    const user = userEvent.setup();
+    await renderListPage('/list');
+    const cards = screen.getAllByTestId('suggestion-card');
+    await user.click(screen.getAllByTestId('view-detail')[1]);
+
+    const panel = screen.getByTestId('detail-panel');
+    expect(panel.previousElementSibling).toBe(cards[1]);
+    expect(cards[1]).toHaveAttribute('data-selected', 'true');
+    expect(cards[0]).toHaveAttribute('data-selected', 'false');
+    expect(screen.getAllByTestId('detail-panel')).toHaveLength(1);
+  });
+
+  it('別のカードを開くと詳細は1つだけになり、前の選択は外れる', async () => {
+    const user = userEvent.setup();
+    await renderListPage('/list');
+    const cards = screen.getAllByTestId('suggestion-card');
+    await user.click(screen.getAllByTestId('view-detail')[0]);
+    await user.click(screen.getAllByTestId('view-detail')[2]);
+
+    const panel = screen.getByTestId('detail-panel');
+    expect(panel.previousElementSibling).toBe(cards[2]);
+    expect(cards[0]).toHaveAttribute('data-selected', 'false');
+    expect(cards[2]).toHaveAttribute('data-selected', 'true');
   });
 
   it('詳細を見るでパネルを開き、閉じるで戻せる', async () => {
