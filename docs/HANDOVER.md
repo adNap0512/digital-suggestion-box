@@ -152,10 +152,13 @@ Supabase の URL が無い開発時だけ、`VITE_ADMIN_ID` と `VITE_ADMIN_PASS
 
 ## 今後の対応候補
 
-- 公開URLで、管理者ログイン、ログアウト、削除、未ログイン時の拒否を人が1回ずつ確認する
 - 共感、ステータス、回答をデータベースに残すか、画面だけと決める
 - 共通PFへ載せる場合は、公開URLのリンクでよいかを確認する
 - 詳細なAI活用の知見資料を別に作る
+- 2027-11-19 の前に、デプロイ用 API トークンを更新する
+- トークンの Account Resources を、All accounts から対象アカウントへ絞る
+- Node.js 20 の非推奨警告と、Wrangler の更新警告に追随する
+- 必要なら、管理者以外の直接削除が拒否されることを API リクエストで試す。設定確認とは別に記録する
 
 ## 関連ドキュメント
 
@@ -172,13 +175,27 @@ Supabase の URL が無い開発時だけ、`VITE_ADMIN_ID` と `VITE_ADMIN_PASS
 | `docs/デジタル目安箱_操作マニュアル.docx` | 利用者向けの操作 |
 | `docs/learning/` | ループエンジニアリングの学習資料 |
 
-## 公開環境でまだ確認できていない項目
+## 公開結果（2026-11-19）
 
-次は、自動テストが通ったこととは別です。
+次の4つは別の確認です。
 
-- 今回のコミットを push したあとの GitHub Actions が成功し、Workers に最新版が載ったか
-- 公開URLで、未ログインの `/admin` がログイン画面へ戻るか
-- 登録済み管理者でログインし、投稿を削除できるか
-- ログアウト後に管理画面へ入れないか
-- 一般の投稿と一覧が、最新の公開版でも引き続きできるか
-- GitHub Pages 側は本線ではないため、Workers と同じ最新版とは限らない
+| 確認 | 結果 |
+|---|---|
+| 自動テスト | ローカル 23ファイル / 128件成功。Actions の Run tests も成功 |
+| ビルド | ローカルと Actions の Build が成功 |
+| デプロイ | Run #16 の2回目が成功。コミット `9d178fe`。54秒 |
+| 公開画面 | 担当者が動作確認を完了。どの操作を何回見たかの証跡は無い |
+
+公開URLは https://digital-suggestion-box.kyuu0512.workers.dev/#/ です。
+
+1回目の配信は、テストとビルドの成功後に `Authentication error [code: 10000]` で失敗しました。既存トークンの失効理由は未確認です。期限切れとは断定しません。新しいトークンの発行と、GitHub Secrets の `CLOUDFLARE_API_TOKEN` の更新、workflow の再実行で復旧しました。アプリのコードは変えていません。
+
+トークン名は `digital-suggestion-box-deploy`、有効期限は 2027-11-19 です。Account Resources は All accounts、Workers Scripts は Edit、Account Settings と User Details と Memberships は Read、IP制限はありません。値は書きません。
+
+更新手順は、期限前に同じ種類のトークンを新規発行し、GitHub Secret の `CLOUDFLARE_API_TOKEN` だけを差し替え、`Deploy to Cloudflare Workers` を再実行します。`main` への push でも再実行されます。All accounts を対象アカウントへ絞ることは、これからの改善候補です。
+
+Node.js 20 を使う Action の非推奨警告と、Wrangler のバージョン更新警告が出ています。認証エラーの原因ではなく、配信成功後も残っています。
+
+管理者以外がデータベースを直接削除できないことは、権限と RLS の設定確認済みです。公開APIへ削除を送って拒否を見た試験ではありません。
+
+GitHub Pages が Workers と同じ版かは未確認です。この文書の push 自体が新しい Actions を起動することがあります。その実行は、上記の Run #16 とは別です。

@@ -38,7 +38,7 @@
 | 下書き | localStorage の別キー | 保存のみ。自動復元は未実装 |
 | 添付 | UI のみ | 保存未実装 |
 
-> **注意:** 公開環境の管理者ログインは Supabase Auth と `suggestion_admins` による権限確認です。パスワードはソースにも公開JSにも置きません。手順は [docs/ADMIN_AUTH_SETUP.md](docs/ADMIN_AUTH_SETUP.md)。担当者の確認では、2026-11-19 時点で本番へ管理者認証用 SQL を適用済みです。公開URLでのログイン操作は、この文書の時点では未確認です。
+> **注意:** 公開環境の管理者ログインは Supabase Auth と `suggestion_admins` による権限確認です。パスワードはソースにも公開JSにも置きません。手順は [docs/ADMIN_AUTH_SETUP.md](docs/ADMIN_AUTH_SETUP.md)。担当者の確認では、2026-11-19 時点で本番へ管理者認証用 SQL を適用済みです。同じ日に、コミット `9d178fe` の公開と、公開画面の動作確認が完了しています。個別操作ごとの証跡は、この README には残していません。
 
 ---
 
@@ -238,7 +238,45 @@ GitHub Pages は確認用として残しています。
 
 https://adnap0512.github.io/digital-suggestion-box/#/
 
-Workers が本線、Pages は補助的な確認用途です。
+Workers が本線、Pages は補助的な確認用途です。Pages が Workers と同じ版であることは、今回確認していません。
+
+### 2026-11-19 の公開結果
+
+確認は4段階に分かれます。どれか1つが成功しても、ほかの段階の成功にはなりません。
+
+| 段階 | 結果 |
+|---|---|
+| 自動テスト | ローカルは 23ファイル / 128件成功。GitHub Actions の Run tests も成功 |
+| ビルド | ローカルの `npm run build` と、Actions の Build が成功 |
+| デプロイ | Run #16 の2回目が成功。対象コミット `9d178fe`。実行時間 54秒 |
+| 公開画面の動作確認 | 担当者が完了。項目別の合否一覧は提出されていない |
+
+公開URLは https://digital-suggestion-box.kyuu0512.workers.dev/#/ です。
+
+初回の Run #16 は、テストとビルドのあと、Cloudflare への配信で `Authentication error [code: 10000]` になりました。既存トークンが無効だった理由は、期限切れとは断定できていません。復旧はコードの修正ではなく、次の設定変更です。
+
+1. Actions のログで Cloudflare API の認証エラーを特定する。
+2. Cloudflare で新しい API トークンを発行する。
+3. GitHub Secrets の `CLOUDFLARE_API_TOKEN` を差し替える。
+4. 同じ workflow を再実行する。
+5. 2回目の配信が成功する。
+
+トークンの値は書きません。記録する設定は次のとおりです。
+
+| 項目 | 内容 |
+|---|---|
+| トークン名 | `digital-suggestion-box-deploy` |
+| 有効期限 | 2027-11-19 |
+| Account Resources | All accounts |
+| Workers Scripts | Edit |
+| Account Settings | Read |
+| User Details | Read |
+| Memberships | Read |
+| IP制限 | なし |
+
+期限前の更新手順は、同じ権限で新しいトークンを作り、GitHub Secret の `CLOUDFLARE_API_TOKEN` だけを差し替え、workflow を再実行します。トークン値はリポジトリに置きません。All accounts は広いため、将来は対象アカウントだけに絞ることを改善候補にします。
+
+配信時には、Node.js 20 を使う Action が非推奨である警告と、Wrangler の更新を促す警告が出ます。どちらも今回の認証エラーの原因ではなく、成功した配信を止めてはいません。版番号の更新は未着手です。
 
 ---
 
@@ -402,8 +440,9 @@ STOP
 - 管理者ログイン（Supabase Auth。未接続の開発時だけ仮ログイン）
 - 未ログインは `/admin` を開けない画面制御
 - 管理者だけが削除できるデータベース権限（担当者が本番適用を確認）
-- Cloudflare Workers への自動配信の仕組み
+- Cloudflare Workers への自動配信。2026-11-19 にコミット `9d178fe` の配信が成功
 - 自動 test / build
+- 担当者による公開画面の動作確認
 
 現在まだ PoC / 未完成なこと:
 
@@ -412,7 +451,9 @@ STOP
 - 添付の保存
 - 再読み込み後も「自分の投稿」を復元すること
 - 共通 PF の API 接続（方針はリンク掲載。接続コードは無い）
-- 管理者認証を含む最新版を、公開 URL で人が操作して確認すること
+- デプロイトークンの対象アカウントを All accounts から絞ること
+- Node.js 20 非推奨警告と Wrangler 更新警告への追随
+- 管理者以外が API で直接削除できないことの実リクエスト試験。権限と RLS の設定確認とは別
 
 ---
 
