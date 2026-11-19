@@ -22,7 +22,8 @@
 | 一般 | トップ | `/` | サマリー、最近の投稿、各画面への導線 |
 | 一般 | 投稿フォーム | `/post` | カテゴリ、投稿者名（任意）、タイトル、本文、投稿 |
 | 一般 | 投稿一覧・詳細 | `/list` | フィルタ、カード一覧、同一画面の詳細パネル、共感 |
-| 管理者 | 投稿管理 | `/admin` | 投稿一覧、ステータス変更、回答、削除 |
+| 管理者 | 管理者ログイン | `/admin/login` | Supabase Auth（未接続時は開発用仮ログイン） |
+| 管理者 | 投稿管理 | `/admin` | 投稿一覧、ステータス変更、回答、削除。未ログイン時はログインへ |
 
 ### 現在の保存対象
 
@@ -37,7 +38,7 @@
 | 下書き | localStorage の別キー | 保存のみ。自動復元は未実装 |
 | 添付 | UI のみ | 保存未実装 |
 
-> **注意:** `/admin` は画面上の導線を分けているだけで、管理者認証は未実装です。
+> **注意:** 公開環境の管理者ログインは Supabase Auth と `suggestion_admins` による権限確認です。パスワードはソースにも公開JSにも置きません。手順は [docs/ADMIN_AUTH_SETUP.md](docs/ADMIN_AUTH_SETUP.md)。担当者の確認では、2026-11-19 時点で本番へ管理者認証用 SQL を適用済みです。公開URLでのログイン操作は、この文書の時点では未確認です。
 
 ---
 
@@ -92,21 +93,24 @@ interface SuggestionRepository {
 /list    投稿一覧・詳細・共感
 
 管理者
-/admin   投稿管理
-         ├─ ステータス変更
-         ├─ 管理者回答
-         └─ 投稿削除
+/admin/login  Supabase Auth（ヘッダー右端。未接続時は開発用仮ログイン）
+/admin        投稿管理（未ログインはログインへ）
+              ├─ ステータス変更（画面内のみ）
+              ├─ 管理者回答（画面内のみ）
+              └─ 投稿削除（RLS で管理者のみ）
 ```
 
-一般ユーザー用 `/list` には管理者操作を出さず、管理操作は `/admin` に集約しています。
+一般ユーザー用 `/list` には管理者操作を出さず、管理操作は `/admin` に集約しています。トップの「管理者画面」ボタンは置かず、導線はヘッダーに集めます。
 
 ### 管理者機能の制約
 
-- 管理者認証は未実装
-- `/admin` の URL を知っている利用者は画面を開ける
-- Supabase では PoC として `anon` に DELETE を許可
-- 公開 URL を知る人は技術的に投稿削除が可能
-- 本番利用時は認証・認可・管理者権限の実装が必須
+- 公開環境では Supabase Auth のセッションでログイン状態を持つ
+- 管理者IDは `VITE_ADMIN_LOGIN_ID`、実際のサインインは対応メール（`VITE_ADMIN_AUTH_EMAIL`）
+- パスワードは Auth 側で照合し、ソースへ埋め込まない
+- 画面ガードに加えて、投稿 DELETE は RLS で管理者のみ
+- 開発時に Supabase 未設定なら、従来の仮ログイン（`VITE_ADMIN_ID` / `VITE_ADMIN_PASSWORD`、DEV のみ）
+- ステータス・回答・共感はまだ DB 永続化しない
+- アカウント払い出し画面は作らない。Auth ユーザー作成はダッシュボードで行う
 
 ---
 
@@ -140,12 +144,19 @@ npm.cmd run build
 
 ### 環境変数
 
-ローカル Supabase 接続では `.env.local` に次の2つだけ設定します。
+ローカルでは `.env.local` に次を設定します。値は Git に含めません。
 
 ```env
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_PUBLISHABLE_KEY=...
+VITE_ADMIN_ID=...
+VITE_ADMIN_PASSWORD=...
+VITE_ADMIN_LOGIN_ID=...
+VITE_ADMIN_AUTH_EMAIL=...
 ```
+
+`VITE_ADMIN_ID` / `VITE_ADMIN_PASSWORD` は開発用仮ログインです。公開ビルドでは使いません。  
+`VITE_ADMIN_LOGIN_ID` / `VITE_ADMIN_AUTH_EMAIL` は公開ビルドに含めてよい非秘密情報です。パスワードは入れません。
 
 フロントでは以下を使用しません。
 
@@ -163,7 +174,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=...
 - `npm run build`
 - カバレッジ閾値: 80%
 
-管理者画面・削除機能追加後の確認時点では **17ファイル / 81テスト成功**、build 成功です。
+2026-11-19 の確認では **23ファイル / 128テスト成功**、`npm run build` 成功です。テストは偽物のクライアントを使い、本番 Supabase へのログイン確認は含みません。
 
 ---
 
@@ -179,7 +190,8 @@ Workers は API サーバとしてではなく、Vite の `dist` を配信する
 | トップ | https://digital-suggestion-box.kyuu0512.workers.dev/#/ |
 | 投稿フォーム | https://digital-suggestion-box.kyuu0512.workers.dev/#/post |
 | 投稿一覧 | https://digital-suggestion-box.kyuu0512.workers.dev/#/list |
-| 管理者画面（認証なし） | https://digital-suggestion-box.kyuu0512.workers.dev/#/admin |
+| 管理者ログイン | https://digital-suggestion-box.kyuu0512.workers.dev/#/admin/login |
+| 管理者画面 | https://digital-suggestion-box.kyuu0512.workers.dev/#/admin |
 
 ### デプロイ構成
 
@@ -215,6 +227,10 @@ Cloudflare Workers
 |---|---|
 | `CLOUDFLARE_API_TOKEN` | Workers デプロイ権限 |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare Account ID |
+| `VITE_SUPABASE_URL` | 公開ビルドの Supabase URL（非秘密） |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | 公開ビルドの publishable key（非秘密） |
+| `VITE_ADMIN_LOGIN_ID` | 画面に出す管理者ID（非秘密） |
+| `VITE_ADMIN_AUTH_EMAIL` | Auth サインイン用メール（非秘密。パスワードは置かない） |
 
 ### GitHub Pages
 
@@ -293,32 +309,35 @@ UI 用の `status` / `empathyCount` / `hasResponse` / `response` / `isMine` は�
 ```txt
 supabase/migrations/
 ├─ 20260908145100_create_suggestions.sql
-└─ 20261005190000_allow_anon_delete_suggestions.sql
+├─ 20261005190000_allow_anon_delete_suggestions.sql
+└─ 20261021130000_secure_admin_suggestions.sql
 ```
 
 - `20260908145100_create_suggestions.sql`
   - `suggestions` テーブル作成
   - RLS 有効化
   - anon の SELECT / INSERT
-
 - `20261005190000_allow_anon_delete_suggestions.sql`
-  - 管理者画面 PoC 用に anon DELETE を許可
+  - 認証なし PoC の途中で、anon に DELETE を許可した記録
+- `20261021130000_secure_admin_suggestions.sql`
+  - anon の DELETE を撤回
+  - 管理者名簿と、管理者だけ削除できるポリシーを追加
 
 ### RLS / セキュリティ
 
-現在は PoC のため、
+担当者が 2026-11-19 に確認した本番の状態は次のとおりです。この README の更新時に、データベースへ再接続してはいません。
 
 ```txt
 anon
 ├─ SELECT
 ├─ INSERT
-└─ DELETE
+└─ DELETE は撤回済み
+
+authenticated
+└─ 削除は suggestion_admins に登録された管理者だけ
 ```
 
-を許可しています。
-
-管理者認証は未実装なので、公開 URL の利用者は技術的に DELETE を実行できます。  
-**本番環境ではこの構成を使用せず、認証・認可・管理者ロールに基づく RLS へ変更する必要があります。**
+画面の `/admin` 制御はブラウザ上の案内です。実際に消せるかは、データベースの RLS（行単位のアクセスルール）で判定します。詳細は [docs/ADMIN_AUTH_SETUP.md](docs/ADMIN_AUTH_SETUP.md)。
 
 ### Supabase で現在永続化していないもの
 
@@ -326,7 +345,8 @@ anon
 - ステータス変更
 - 管理者回答
 - 添付
-- 本格ユーザー認証 / 管理者権限
+- 「自分の投稿」の判定（`isMine`）。再読み込み後の Supabase 一覧では自分の投稿として戻らない
+- 一般利用者ごとのログイン
 
 ---
 
@@ -373,24 +393,26 @@ STOP
 
 現在できていること:
 
-- 4画面の公開
-- 一般ユーザー / 管理者画面の分離
-- Repository 境界
-- Web Storage 永続化
-- Supabase 実 DB への list / create / delete
-- Cloudflare Workers 公開
-- 自動 test / build / deploy
-- 管理者画面からの投稿削除
+- 投稿の作成、一覧、選択したカード近くの詳細表示
+- 名前が空なら匿名、入力があれば記名
+- URL の `mine=1` による「みんなの投稿 / 自分の投稿」の切り替え
+- 一般画面と管理者画面の分離
+- Repository 境界（Memory / Web Storage / Supabase）
+- Supabase への投稿の取得・作成・削除
+- 管理者ログイン（Supabase Auth。未接続の開発時だけ仮ログイン）
+- 未ログインは `/admin` を開けない画面制御
+- 管理者だけが削除できるデータベース権限（担当者が本番適用を確認）
+- Cloudflare Workers への自動配信の仕組み
+- 自動 test / build
 
 現在まだ PoC / 未完成なこと:
 
-- 本格認証
-- 管理者権限
-- 共感の DB 永続化
-- ステータス変更の DB 永続化
-- 管理者回答の DB 永続化
-- 添付保存
-- 共通 PF API 連携
+- 一般利用者ごとのログイン
+- 共感、ステータス、管理者回答の DB 永続化
+- 添付の保存
+- 再読み込み後も「自分の投稿」を復元すること
+- 共通 PF の API 接続（方針はリンク掲載。接続コードは無い）
+- 管理者認証を含む最新版を、公開 URL で人が操作して確認すること
 
 ---
 
@@ -407,3 +429,5 @@ STOP
 | `docs/directory-structure.md` | ディレクトリ構成 |
 | `docs/learning/` | ループエンジニアリング等の学習資料 |
 | `docs/デジタル目安箱_操作マニュアル.docx` | 利用者向け操作マニュアル |
+| `docs/HANDOVER.md` | 育休中の引き継ぎ |
+| `docs/ADMIN_AUTH_SETUP.md` | 管理者ログインの本番設定手順 |

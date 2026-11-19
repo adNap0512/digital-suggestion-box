@@ -14,7 +14,8 @@
 | 投稿フォーム | `/post` | 投稿の作成・下書き保存 |
 | 投稿一覧・詳細 | `/list` | みんなの投稿。詳細は**同じ画面内のパネル** |
 | 自分の投稿一覧 | `/list?mine=1` | 上記と同じ画面。`mine=1` で自分の投稿のみ |
-| 管理者 | `/admin` | ステータス・回答・削除（認証なし PoC） |
+| 管理者ログイン | `/admin/login` | Supabase Auth。未接続時は開発用仮ログイン |
+| 管理者 | `/admin` | ステータス・回答・削除。未ログイン時はログインへ |
 
 詳細専用のルートやモーダルは無い。
 
@@ -28,13 +29,14 @@ flowchart TD
   Post["投稿フォーム /post"]
   List["一覧・詳細 /list"]
   Mine["一覧・詳細 /list?mine=1"]
+  AdminLogin["管理者ログイン /admin/login"]
   Admin["管理者 /admin"]
   Panel["詳細パネル（同一画面）"]
 
   Top -->|投稿する| Post
   Top -->|みんなの投稿を見る| List
   Top -->|自分の投稿を見る| Mine
-  Top -->|管理者画面| Admin
+  Top -->|ヘッダー 管理者ログイン| AdminLogin
 
   Post -->|送信成功| List
   Post -->|ヘッダー 一覧| List
@@ -43,6 +45,12 @@ flowchart TD
   List -->|詳細を見る| Panel
   Mine -->|詳細を見る| Panel
   Panel -->|閉じる / Escape| List
+
+  AdminLogin -->|ログイン成功| Admin
+  AdminLogin -->|失敗| AdminLogin
+  Admin -->|未ログイン| AdminLogin
+  Admin -->|ログアウト| AdminLogin
+  Admin -->|詳細を見る| Panel
 
   List -->|ヘッダー| Top
   List -->|ヘッダー| Post
@@ -64,7 +72,16 @@ flowchart TD
 | 詳細の「閉じる」または Escape | パネルを閉じ、操作した「詳細を見る」へフォーカス |
 | 表示中の投稿が一覧フィルタから外れる | パネルを閉じる |
 | トップの最近の投稿 | 詳細へは進まない（クリック用の見た目にしない） |
+| ヘッダー「管理者ログイン」 | `/admin/login` |
+| 正しい仮認証でログイン | `/admin` |
+| 誤った仮認証 | ログイン画面にエラー表示 |
+| 未ログインで `/admin` | `/admin/login` へ遷移 |
+| ヘッダー「ログアウト」 | ログイン状態を破棄。管理者画面にいた場合はログインへ |
 
 共感は一覧カード上で完結し、画面遷移しない。
 
 管理者画面の詳細も画面内パネル。導線の改善対象外。
+
+公開環境では `/admin/login` で Supabase Auth と管理者ロール確認が必要です。削除権限は RLS 側でも検証します。手順は [ADMIN_AUTH_SETUP.md](ADMIN_AUTH_SETUP.md)。
+
+開発時に Supabase 未設定のときは画面上の仮ログインのみで、サーバー側の認可はありません。

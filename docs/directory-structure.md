@@ -25,6 +25,8 @@ digital-suggestion-box/
 ├─ docs/
 │  ├─ directory-structure.md
 │  ├─ SCREEN_FLOW.md
+│  ├─ ADMIN_AUTH_SETUP.md
+│  ├─ HANDOVER.md
 │  └─ learning/
 │     ├─ ループエンジニアリングとは.md
 │     ├─ ai-method-adoption.md
@@ -45,10 +47,17 @@ digital-suggestion-box/
 │  ├─ data/
 │  │  ├─ mockSuggestions.ts
 │  │  └─ categories.ts
+│  ├─ auth/
+│  │  ├─ adminAuth.ts
+│  │  ├─ AdminAuthContext.tsx
+│  │  ├─ RequireAdmin.tsx
+│  │  └─ supabaseAdminAuth.ts
 │  ├─ pages/
 │  │  ├─ TopPage.tsx
 │  │  ├─ PostFormPage.tsx
-│  │  └─ ListDetailPage.tsx
+│  │  ├─ ListDetailPage.tsx
+│  │  ├─ AdminLoginPage.tsx
+│  │  └─ AdminListPage.tsx
 │  ├─ styles/
 │  │  └─ tokens.css
 │  ├─ utils/
@@ -104,6 +113,7 @@ coverage/       # カバレッジレポート
 | `README.md` | 起動方法、テスト方法、画面概要、AI 開発ルールの概要 |
 | `DESIGN.md` | デジタル目安箱のデザイン仕様書（AI が参照する見た目・UX の定義） |
 | `docs/SCREEN_FLOW.md` | 画面一覧と遷移（Mermaid） |
+| `docs/ADMIN_AUTH_SETUP.md` | 公開環境の Supabase Auth / RLS 設定手順 |
 | `package.json` | npm scripts と依存関係 |
 | `vite.config.ts` | Vite のビルド設定（Cloudflare は `base: '/'`、GitHub Pages は `GITHUB_PAGES=true` でサブパス）、Vitest・カバレッジ設定 |
 | `wrangler.toml` | Cloudflare Workers の基本設定（`dist` を静的アセット配信） |
@@ -120,9 +130,10 @@ coverage/       # カバレッジレポート
 | ディレクトリ / ファイル | 役割 |
 |------------------------|------|
 | `src/main.tsx` | React アプリのエントリポイント |
-| `src/App.tsx` | ルーティング定義（3 画面） |
+| `src/App.tsx` | ルーティング定義 |
+| `src/auth/` | 管理者認証（仮ログイン / Supabase Auth・Context・ルートガード） |
 | `src/components/` | 共通 UI コンポーネント |
-| `src/pages/` | 画面単位のコンポーネント（Top / PostForm / ListDetail） |
+| `src/pages/` | 画面単位のコンポーネント |
 | `src/context/` | 投稿データの状態管理（SuggestionsContext） |
 | `src/data/` | ダミーデータ・カテゴリ定義 |
 | `src/utils/` | 型定義、フィルタ、集計、共感・ステータス更新などの pure function |
@@ -148,7 +159,8 @@ coverage/       # カバレッジレポート
 | `TopPage` | `/` | サマリー、最近の投稿、各画面への導線 |
 | `PostFormPage` | `/post` | 投稿フォーム（投稿者名任意、下書き保存） |
 | `ListDetailPage` | `/list` | 一覧・同一画面の詳細パネル・共感 |
-| `AdminListPage` | `/admin` | 一覧・ステータス・回答・削除（認証なしの PoC） |
+| `AdminLoginPage` | `/admin/login` | Supabase Auth（未接続時は開発用仮ログイン） |
+| `AdminListPage` | `/admin` | 一覧・ステータス・回答・削除。未ログイン時はログインへ |
 
 ---
 
